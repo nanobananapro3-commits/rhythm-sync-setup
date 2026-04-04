@@ -278,21 +278,23 @@ const PATTERNS: PatternFn[] = [
     if (rand() > 0.3) obs.push({ x: x + 80, type: 'laser', width: 80, height: 8, y: -70 });
     return x + 260;
   },
-  // 30: Solid platform with spikes below (lvl 1+)
+  // 30: Floating platform (short)
   (obs, x, _d, rand) => {
-    const w = 80 + rand() * 60;
-    obs.push({ x, type: 'solid-platform', width: w, height: 15, y: -90 });
-    obs.push({ x: x + 10, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + w - 40, type: 'spike', width: 30, height: 30 });
-    return x + w;
+    const w = 50 + rand() * 40;
+    const h = -60 - rand() * 80;
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: h });
+    return x + w + 20;
   },
-  // 31: Double solid platform staircase
+  // 31: Floating platform staircase (ascending)
   (obs, x, _d, rand) => {
-    const w = 70 + rand() * 30;
-    obs.push({ x, type: 'solid-platform', width: w, height: 15, y: -70 });
-    obs.push({ x: x + w + 30, type: 'solid-platform', width: w, height: 15, y: -130 });
-    obs.push({ x: x + w + 30 + w / 2 - 15, type: 'spike', width: 30, height: 30 });
-    return x + w * 2 + 30;
+    const steps = 2 + Math.floor(rand() * 3);
+    let cx = x;
+    for (let i = 0; i < steps; i++) {
+      const w = 45 + rand() * 35;
+      obs.push({ x: cx, type: 'solid-platform', width: w, height: 12, y: -60 - i * 45 });
+      cx += w + 25 + rand() * 20;
+    }
+    return cx;
   },
   // 32: Vertical saw (lvl 10+)
   (obs, x) => {
@@ -320,7 +322,7 @@ const PATTERNS: PatternFn[] = [
   // 36: Ceiling spike with platform
   (obs, x, _d, rand) => {
     const w = 80 + rand() * 40;
-    obs.push({ x, type: 'solid-platform', width: w, height: 15, y: -100 });
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -100 });
     obs.push({ x: x + 10, type: 'ceiling-spike', width: 30, height: 30, y: -100 });
     obs.push({ x: x + w - 40, type: 'ceiling-spike', width: 30, height: 30, y: -100 });
     return x + w;
@@ -328,8 +330,8 @@ const PATTERNS: PatternFn[] = [
   // 37: Platform corridor with ceiling
   (obs, x, _d, rand) => {
     const w = 120 + rand() * 60;
-    obs.push({ x, type: 'solid-platform', width: w, height: 15, y: -60 });
-    obs.push({ x, type: 'solid-platform', width: w, height: 15, y: -130 });
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -60 });
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -130 });
     obs.push({ x: x + 30, type: 'spike', width: 30, height: 30 });
     obs.push({ x: x + w - 60, type: 'spike', width: 30, height: 30 });
     return x + w;
@@ -338,6 +340,61 @@ const PATTERNS: PatternFn[] = [
   (obs, x) => {
     obs.push({ x, type: 'mushroom', width: 24, height: 24, y: -40 });
     return x + 30;
+  },
+  // 39: Long floating platform with spikes below
+  (obs, x, _d, rand) => {
+    const w = 100 + rand() * 80;
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -80 });
+    const spikeCount = 2 + Math.floor(rand() * 3);
+    for (let i = 0; i < spikeCount; i++) {
+      obs.push({ x: x + 15 + i * 35, type: 'spike', width: 30, height: 30 });
+    }
+    return x + w + 20;
+  },
+  // 40: Branching path (easy top / hard bottom)
+  (obs, x, _d, rand) => {
+    const len = 200 + rand() * 100;
+    // Top path: floating platforms (easier)
+    obs.push({ x, type: 'solid-platform', width: 60, height: 12, y: -100 });
+    obs.push({ x: x + 80, type: 'solid-platform', width: 80, height: 12, y: -110 });
+    obs.push({ x: x + 180, type: 'solid-platform', width: 60, height: 12, y: -95 });
+    // Bottom path: ground with spikes (harder)
+    obs.push({ x: x + 30, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 90, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 130, type: 'tall-spike', width: 30, height: 55 });
+    obs.push({ x: x + 190, type: 'spike', width: 30, height: 30 });
+    return x + len;
+  },
+  // 41: Descending floating staircase
+  (obs, x, _d, rand) => {
+    const steps = 3 + Math.floor(rand() * 2);
+    let cx = x;
+    for (let i = 0; i < steps; i++) {
+      const w = 40 + rand() * 30;
+      obs.push({ x: cx, type: 'solid-platform', width: w, height: 12, y: -140 + i * 35 });
+      cx += w + 20 + rand() * 15;
+    }
+    return cx;
+  },
+  // 42: Floating platform with spike on top
+  (obs, x, _d, rand) => {
+    const w = 60 + rand() * 50;
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -75 });
+    obs.push({ x: x + w / 2 - 15, type: 'spike', width: 30, height: 30, y: -75 - 30 });
+    return x + w + 20;
+  },
+  // 43: Branching path v2 (hard top / easy bottom)
+  (obs, x, _d, rand) => {
+    const len = 220 + rand() * 80;
+    // Top path: platforms with ceiling spikes (harder)
+    obs.push({ x, type: 'solid-platform', width: 70, height: 12, y: -90 });
+    obs.push({ x: x + 20, type: 'ceiling-spike', width: 25, height: 25, y: -160 });
+    obs.push({ x: x + 90, type: 'solid-platform', width: 70, height: 12, y: -100 });
+    obs.push({ x: x + 110, type: 'ceiling-spike', width: 25, height: 25, y: -170 });
+    obs.push({ x: x + 180, type: 'solid-platform', width: 50, height: 12, y: -85 });
+    // Bottom: single spike
+    obs.push({ x: x + 80, type: 'spike', width: 30, height: 30 });
+    return x + len;
   },
 ];
 
