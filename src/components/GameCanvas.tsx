@@ -342,11 +342,59 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         return;
       }
 
-      // Physics
-      if (jumpingRef.current && player.isGrounded) {
-        player.vy = level.jumpForce; player.isGrounded = false;
+      // Immortality timer
+      if (player.isImmortal) {
+        player.immortalTimer--;
+        if (player.immortalTimer <= 0) {
+          player.isImmortal = false;
+        }
       }
-      player.vy += level.gravity; player.y += player.vy;
+
+      // Mode switches
+      for (const obs of obstacles) {
+        if (Math.abs(obs.x - player.x) > 50) continue;
+        if (obs.type === 'mode-ball') player.mode = 'ball';
+        else if (obs.type === 'mode-airplane') player.mode = 'airplane';
+        else if (obs.type === 'mode-normal') player.mode = 'normal';
+        else if (obs.type === 'mushroom' && !player.isImmortal) {
+          player.isImmortal = true;
+          player.immortalTimer = 300; // 5 seconds at 60fps
+        }
+      }
+
+      // Physics based on mode
+      if (player.mode === 'airplane') {
+        // Airplane: hold to go up, release to go down
+        if (jumpingRef.current) {
+          player.vy = Math.max(player.vy - 0.8, -5);
+        } else {
+          player.vy = Math.min(player.vy + 0.4, 4);
+        }
+        player.y += player.vy;
+        player.isGrounded = false;
+        // Clamp to screen
+        if (player.y < 10) { player.y = 10; player.vy = 0; }
+        if (player.y >= level.groundY - PLAYER_SIZE) {
+          player.y = level.groundY - PLAYER_SIZE; player.vy = 0;
+        }
+        player.rotation += 2;
+      } else if (player.mode === 'ball') {
+        // Ball: click to flip gravity
+        if (jumpingRef.current && player.isGrounded) {
+          player.vy = level.jumpForce * 0.8;
+          player.isGrounded = false;
+        }
+        player.vy += level.gravity; player.y += player.vy;
+        player.rotation += 8;
+      } else {
+        // Normal mode
+        if (jumpingRef.current && player.isGrounded) {
+          player.vy = level.jumpForce; player.isGrounded = false;
+        }
+        player.vy += level.gravity; player.y += player.vy;
+        if (!player.isGrounded) player.rotation += 5;
+        else player.rotation = Math.round(player.rotation / 90) * 90;
+      }
 
       const wasInAir = !player.isGrounded;
       if (player.y >= level.groundY - PLAYER_SIZE) {
@@ -354,12 +402,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
       if (player.y < 0) { player.y = 0; player.vy = 0; }
 
-      if (wasInAir && player.isGrounded) {
+      if (wasInAir && player.isGrounded && player.mode !== 'airplane') {
         spawnGroundParticle(player.x - cameraXRef.current, player.y, zc.accentColor);
       }
-
-      if (!player.isGrounded) player.rotation += 5;
-      else player.rotation = Math.round(player.rotation / 90) * 90;
 
       cameraXRef.current += level.speed;
       player.x = cameraXRef.current + 100;
@@ -373,18 +418,25 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // Trail particles
       if (frameCountRef.current % 2 === 0) {
-        spawnTrailParticle(player.x - cameraXRef.current, player.y, zc.color);
+        spawnTrailParticle(player.x - cameraXRef.current, player.y, player.isImmortal ? 'hsl(45,100%,60%)' : zc.color);
       }
 
-      // Platform landings
+      // Platform & solid-platform landings + ceiling collisions
       for (const obs of obstacles) {
-        if (obs.type !== 'platform' && obs.type !== 'block' && obs.type !== 'moving-block' && obs.type !== 'pillar') continue;
+        if (obs.type !== 'platform' && obs.type !== 'solid-platform' && obs.type !== 'block' && obs.type !== 'moving-block' && obs.type !== 'pillar' && obs.type !== 'vanishing-block') continue;
         if (Math.abs(obs.x - player.x) > 200) continue;
-        if (obs.type === 'platform') {
+        
+        if (obs.type === 'platform' || obs.type === 'solid-platform' || obs.type === 'vanishing-block') {
           const platY = level.groundY + (obs.y || -80);
+          // Landing on top
           if (player.x + PLAYER_SIZE > obs.x && player.x < obs.x + obs.width &&
               player.vy >= 0 && player.y + PLAYER_SIZE <= platY + 8 && player.y + PLAYER_SIZE + player.vy >= platY) {
             player.y = platY - PLAYER_SIZE; player.vy = 0; player.isGrounded = true;
+          }
+          // Ceiling collision (solid platform only - can't pass through from below)
+          if (obs.type === 'solid-platform' && player.x + PLAYER_SIZE > obs.x && player.x < obs.x + obs.width &&
+              player.vy < 0 && player.y >= platY + obs.height - 5 && player.y + player.vy <= platY + obs.height) {
+            player.y = platY + obs.height; player.vy = 0;
           }
         }
       }
@@ -394,11 +446,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (Math.abs(obs.x - player.x) > 200) continue;
         if (obs.type === 'gap') {
           if (player.x + PLAYER_SIZE > obs.x && player.x < obs.x + obs.width && player.y + PLAYER_SIZE >= level.groundY) {
+            if (player.isImmortal) continue;
             player.isDead = true; handlePlayerDeath(); return;
           }
           continue;
         }
-        if (obs.type === 'platform' || obs.type === 'orb') continue;
+        if (obs.type === 'platform' || obs.type === 'orb' || obs.type === 'solid-platform' ||
+            obs.type === 'mushroom' || obs.type === 'mode-ball' || obs.type === 'mode-airplane' ||
+            obs.type === 'mode-normal' || obs.type === 'vanishing-block') continue;
         if (checkCollision(player.x, player.y, obs)) {
           if ((obs.type === 'block' || obs.type === 'moving-block' || obs.type === 'pillar') && player.vy >= 0) {
             const obsTop = level.groundY - obs.height;
@@ -406,6 +461,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
               player.y = obsTop - PLAYER_SIZE; player.vy = 0; player.isGrounded = true; continue;
             }
           }
+          if (player.isImmortal) continue;
           player.isDead = true; handlePlayerDeath(); return;
         }
       }
