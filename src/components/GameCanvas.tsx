@@ -112,7 +112,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   useEffect(() => {
     const p = playerRef.current;
     p.x = 100; p.y = level.groundY - PLAYER_SIZE; p.vy = 0; p.rotation = 0;
-    p.isGrounded = true; p.isDead = false;
+    p.isGrounded = true; p.isDead = false; p.mode = 'normal'; p.isImmortal = false; p.immortalTimer = 0;
     cameraXRef.current = 0; continuesUsedRef.current = 0;
     gameOverRef.current = false; completedRef.current = false;
     particlesRef.current = [];
