@@ -3,7 +3,9 @@ export interface Obstacle {
   type: 'spike' | 'block' | 'tall-spike' | 'double-spike' | 'triple-spike' |
         'moving-block' | 'gap' | 'pillar' | 'saw' | 'platform' |
         'spike-block' | 'orb' | 'portal' | 'laser' | 'wave-spike' |
-        'mini-saw-row' | 'spike-pit';
+        'mini-saw-row' | 'spike-pit' | 'solid-platform' | 'mushroom' |
+        'vertical-saw' | 'vanishing-block' | 'pulse-laser' | 'hammer' |
+        'ceiling-spike' | 'mode-ball' | 'mode-airplane' | 'mode-normal';
   width: number;
   height: number;
   y?: number;
@@ -11,7 +13,7 @@ export interface Obstacle {
 }
 
 export interface ColorZone {
-  start: number; // 0-1 progress
+  start: number;
   color: string;
   bgColor: string;
   accentColor: string;
@@ -32,6 +34,9 @@ export interface LevelData {
   pulseColor: string;
   length: number;
   colorZones: ColorZone[];
+  hasBallMode: boolean;
+  hasAirplaneMode: boolean;
+  hasMushroom: boolean;
 }
 
 const THEMES = [
@@ -273,19 +278,91 @@ const PATTERNS: PatternFn[] = [
     if (rand() > 0.3) obs.push({ x: x + 80, type: 'laser', width: 80, height: 8, y: -70 });
     return x + 260;
   },
+  // 30: Solid platform with spikes below (lvl 1+)
+  (obs, x, _d, rand) => {
+    const w = 80 + rand() * 60;
+    obs.push({ x, type: 'solid-platform', width: w, height: 15, y: -90 });
+    obs.push({ x: x + 10, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + w - 40, type: 'spike', width: 30, height: 30 });
+    return x + w;
+  },
+  // 31: Double solid platform staircase
+  (obs, x, _d, rand) => {
+    const w = 70 + rand() * 30;
+    obs.push({ x, type: 'solid-platform', width: w, height: 15, y: -70 });
+    obs.push({ x: x + w + 30, type: 'solid-platform', width: w, height: 15, y: -130 });
+    obs.push({ x: x + w + 30 + w / 2 - 15, type: 'spike', width: 30, height: 30 });
+    return x + w * 2 + 30;
+  },
+  // 32: Vertical saw (lvl 10+)
+  (obs, x) => {
+    obs.push({ x, type: 'vertical-saw', width: 35, height: 35 });
+    return x + 35;
+  },
+  // 33: Vanishing block (lvl 20+)
+  (obs, x, _d, rand) => {
+    const w = 40 + rand() * 30;
+    obs.push({ x, type: 'vanishing-block', width: w, height: 30 });
+    obs.push({ x: x + w + 20, type: 'spike', width: 30, height: 30 });
+    return x + w + 50;
+  },
+  // 34: Pulse laser (lvl 40+)
+  (obs, x, _d, rand) => {
+    const w = 100 + rand() * 80;
+    obs.push({ x, type: 'pulse-laser', width: w, height: 12, y: -50 - rand() * 40 });
+    return x + w;
+  },
+  // 35: Hammer (lvl 50+)
+  (obs, x) => {
+    obs.push({ x, type: 'hammer', width: 40, height: 60 });
+    return x + 60;
+  },
+  // 36: Ceiling spike with platform
+  (obs, x, _d, rand) => {
+    const w = 80 + rand() * 40;
+    obs.push({ x, type: 'solid-platform', width: w, height: 15, y: -100 });
+    obs.push({ x: x + 10, type: 'ceiling-spike', width: 30, height: 30, y: -100 });
+    obs.push({ x: x + w - 40, type: 'ceiling-spike', width: 30, height: 30, y: -100 });
+    return x + w;
+  },
+  // 37: Platform corridor with ceiling
+  (obs, x, _d, rand) => {
+    const w = 120 + rand() * 60;
+    obs.push({ x, type: 'solid-platform', width: w, height: 15, y: -60 });
+    obs.push({ x, type: 'solid-platform', width: w, height: 15, y: -130 });
+    obs.push({ x: x + 30, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + w - 60, type: 'spike', width: 30, height: 30 });
+    return x + w;
+  },
+  // 38: Mushroom placement (lvl 30+)
+  (obs, x) => {
+    obs.push({ x, type: 'mushroom', width: 24, height: 24, y: -40 });
+    return x + 30;
+  },
 ];
 
-function getAvailablePatterns(difficulty: number): number[] {
-  if (difficulty < 0.1) return [0, 0, 0, 4, 4, 1];
-  if (difficulty < 0.2) return [0, 1, 3, 4, 6, 9, 19];
-  if (difficulty < 0.3) return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 24];
-  if (difficulty < 0.4) return [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 18, 19, 20];
-  if (difficulty < 0.5) return [2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
-  if (difficulty < 0.6) return [2, 5, 6, 7, 8, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25];
-  if (difficulty < 0.7) return [5, 6, 7, 8, 10, 11, 14, 15, 16, 17, 18, 20, 21, 22, 23, 25, 26];
-  if (difficulty < 0.8) return [5, 6, 10, 11, 14, 16, 17, 18, 20, 21, 22, 23, 25, 26, 27, 28];
-  if (difficulty < 0.9) return [5, 10, 11, 14, 16, 18, 20, 21, 22, 23, 25, 26, 27, 28, 29];
-  return [5, 10, 11, 14, 18, 20, 21, 22, 23, 25, 26, 27, 28, 29, 29, 29];
+function getAvailablePatterns(difficulty: number, levelNum: number): number[] {
+  const base: number[] = [];
+  // Always available: basic patterns + solid platforms
+  if (difficulty < 0.1) { base.push(0, 0, 0, 4, 4, 1, 30); }
+  else if (difficulty < 0.2) { base.push(0, 1, 3, 4, 6, 9, 19, 30, 31); }
+  else if (difficulty < 0.3) { base.push(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 24, 30, 31, 37); }
+  else if (difficulty < 0.4) { base.push(1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 18, 19, 20, 30, 31, 36, 37); }
+  else if (difficulty < 0.5) { base.push(2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 30, 31, 36, 37); }
+  else if (difficulty < 0.6) { base.push(2, 5, 6, 7, 8, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 30, 31, 36, 37); }
+  else if (difficulty < 0.7) { base.push(5, 6, 7, 8, 10, 11, 14, 15, 16, 17, 18, 20, 21, 22, 23, 25, 26, 30, 31, 36, 37); }
+  else if (difficulty < 0.8) { base.push(5, 6, 10, 11, 14, 16, 17, 18, 20, 21, 22, 23, 25, 26, 27, 28, 30, 31, 36, 37); }
+  else if (difficulty < 0.9) { base.push(5, 10, 11, 14, 16, 18, 20, 21, 22, 23, 25, 26, 27, 28, 29, 30, 31, 36, 37); }
+  else { base.push(5, 10, 11, 14, 18, 20, 21, 22, 23, 25, 26, 27, 28, 29, 29, 29, 30, 31, 36, 37); }
+
+  // New traps every 10 levels
+  if (levelNum >= 10) base.push(32, 32); // vertical saw
+  if (levelNum >= 20) base.push(33, 33); // vanishing block
+  if (levelNum >= 30) base.push(38); // mushroom
+  if (levelNum >= 40) base.push(34, 34); // pulse laser
+  if (levelNum >= 50) base.push(35, 35); // hammer
+
+  return base;
 }
 
 const FPS_CONST = 60;
@@ -301,13 +378,20 @@ export function generateLevel(levelNum: number): LevelData {
 
   const obstacles: Obstacle[] = [];
   let currentX = 600;
-  const availablePatterns = getAvailablePatterns(difficulty);
+  const availablePatterns = getAvailablePatterns(difficulty, levelNum);
   
   const minGap = Math.max(50, 220 - difficulty * 180);
   const maxGap = Math.max(100, 350 - difficulty * 260);
   
   const totalSections = 14 + Math.floor(difficulty * 18);
   const sectionLength = (baseLevelLength - 1200) / totalSections;
+
+  // Ball mode: some levels from 50+, not all
+  const hasBallMode = levelNum >= 50 && (levelNum % 3 === 0);
+  // Airplane mode: some levels from 70+
+  const hasAirplaneMode = levelNum >= 70 && (levelNum % 4 === 1);
+  // Mushroom: available from level 30
+  const hasMushroom = levelNum >= 30;
   
   for (let section = 0; section < totalSections; section++) {
     const sectionStart = 600 + section * sectionLength;
@@ -317,6 +401,30 @@ export function generateLevel(levelNum: number): LevelData {
     const densityMultiplier = isIntense ? 1.0 : 0.5;
     
     if (currentX < sectionStart) currentX = sectionStart;
+
+    // Add mode switches for ball/airplane levels
+    if (hasBallMode && section === Math.floor(totalSections * 0.3)) {
+      obstacles.push({ x: currentX, type: 'mode-ball', width: 30, height: 30 });
+      currentX += 200;
+    }
+    if (hasBallMode && section === Math.floor(totalSections * 0.5)) {
+      obstacles.push({ x: currentX, type: 'mode-normal', width: 30, height: 30 });
+      currentX += 100;
+    }
+    if (hasAirplaneMode && section === Math.floor(totalSections * 0.4)) {
+      obstacles.push({ x: currentX, type: 'mode-airplane', width: 30, height: 30 });
+      currentX += 200;
+      // Add ceiling spikes for airplane sections
+      for (let i = 0; i < 5; i++) {
+        obstacles.push({ x: currentX + i * 120, type: 'ceiling-spike', width: 30, height: 30, y: -280 });
+        obstacles.push({ x: currentX + i * 120 + 60, type: 'spike', width: 30, height: 30 });
+      }
+      currentX += 600;
+    }
+    if (hasAirplaneMode && section === Math.floor(totalSections * 0.65)) {
+      obstacles.push({ x: currentX, type: 'mode-normal', width: 30, height: 30 });
+      currentX += 100;
+    }
     
     while (currentX < sectionEnd - 100) {
       const gap = (minGap + rand() * (maxGap - minGap)) / densityMultiplier;
@@ -328,10 +436,8 @@ export function generateLevel(levelNum: number): LevelData {
     }
   }
 
-  // Primary theme
   const primaryTheme = THEMES[levelNum % THEMES.length];
   
-  // Generate color zones (2-5 per level based on difficulty)
   const numZones = 2 + Math.floor(rand() * (1 + difficulty * 3));
   const colorZones: ColorZone[] = [];
   for (let i = 0; i < numZones; i++) {
@@ -356,5 +462,8 @@ export function generateLevel(levelNum: number): LevelData {
     pulseColor: primaryTheme.pulse,
     length: baseLevelLength,
     colorZones,
+    hasBallMode,
+    hasAirplaneMode,
+    hasMushroom,
   };
 }
