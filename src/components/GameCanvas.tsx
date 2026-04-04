@@ -858,6 +858,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     player.x = cameraXRef.current + 100;
     player.y = level.groundY - PLAYER_SIZE;
     player.vy = 0; player.rotation = 0; player.isGrounded = true; player.isDead = false;
+    player.mode = 'normal'; player.isImmortal = false; player.immortalTimer = 0;
     particlesRef.current = [];
     setUiState('playing');
   }, [level, onRestart, findSafeRespawnCamera, onResumeMusic]);
