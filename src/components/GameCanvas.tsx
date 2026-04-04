@@ -59,7 +59,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const playerRef = useRef<PlayerState>({
     x: 100, y: level.groundY - PLAYER_SIZE, vy: 0, rotation: 0,
-    isGrounded: true, isDead: false,
+    isGrounded: true, isDead: false, mode: 'normal', isImmortal: false, immortalTimer: 0,
   });
   const cameraXRef = useRef(0);
   const jumpingRef = useRef(false);
