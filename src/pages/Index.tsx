@@ -123,7 +123,7 @@ const Index: React.FC = () => {
     return (
       <SkinShop
         gameState={gameState}
-        onStateChange={setGameState}
+        onStateChange={saveGameState}
         onBack={() => setScreen('menu')}
       />
     );
