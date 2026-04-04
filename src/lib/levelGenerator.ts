@@ -400,17 +400,17 @@ const PATTERNS: PatternFn[] = [
 
 function getAvailablePatterns(difficulty: number, levelNum: number): number[] {
   const base: number[] = [];
-  // Always available: basic patterns + solid platforms
-  if (difficulty < 0.1) { base.push(0, 0, 0, 4, 4, 1, 30); }
-  else if (difficulty < 0.2) { base.push(0, 1, 3, 4, 6, 9, 19, 30, 31); }
-  else if (difficulty < 0.3) { base.push(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 24, 30, 31, 37); }
-  else if (difficulty < 0.4) { base.push(1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 18, 19, 20, 30, 31, 36, 37); }
-  else if (difficulty < 0.5) { base.push(2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 30, 31, 36, 37); }
-  else if (difficulty < 0.6) { base.push(2, 5, 6, 7, 8, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 30, 31, 36, 37); }
-  else if (difficulty < 0.7) { base.push(5, 6, 7, 8, 10, 11, 14, 15, 16, 17, 18, 20, 21, 22, 23, 25, 26, 30, 31, 36, 37); }
-  else if (difficulty < 0.8) { base.push(5, 6, 10, 11, 14, 16, 17, 18, 20, 21, 22, 23, 25, 26, 27, 28, 30, 31, 36, 37); }
-  else if (difficulty < 0.9) { base.push(5, 10, 11, 14, 16, 18, 20, 21, 22, 23, 25, 26, 27, 28, 29, 30, 31, 36, 37); }
-  else { base.push(5, 10, 11, 14, 18, 20, 21, 22, 23, 25, 26, 27, 28, 29, 29, 29, 30, 31, 36, 37); }
+  // Always available: basic patterns + floating platforms + branching paths
+  if (difficulty < 0.1) { base.push(0, 0, 0, 4, 4, 1, 30, 30, 31, 39, 40); }
+  else if (difficulty < 0.2) { base.push(0, 1, 3, 4, 6, 9, 19, 30, 31, 39, 40, 41); }
+  else if (difficulty < 0.3) { base.push(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 24, 30, 31, 37, 39, 40, 41, 42); }
+  else if (difficulty < 0.4) { base.push(1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 18, 19, 20, 30, 31, 36, 37, 39, 40, 41, 42, 43); }
+  else if (difficulty < 0.5) { base.push(2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 30, 31, 36, 37, 39, 40, 41, 42, 43); }
+  else if (difficulty < 0.6) { base.push(2, 5, 6, 7, 8, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 30, 31, 36, 37, 39, 40, 41, 42, 43); }
+  else if (difficulty < 0.7) { base.push(5, 6, 7, 8, 10, 11, 14, 15, 16, 17, 18, 20, 21, 22, 23, 25, 26, 30, 31, 36, 37, 39, 40, 41, 42, 43); }
+  else if (difficulty < 0.8) { base.push(5, 6, 10, 11, 14, 16, 17, 18, 20, 21, 22, 23, 25, 26, 27, 28, 30, 31, 36, 37, 39, 40, 41, 42, 43); }
+  else if (difficulty < 0.9) { base.push(5, 10, 11, 14, 16, 18, 20, 21, 22, 23, 25, 26, 27, 28, 29, 30, 31, 36, 37, 39, 40, 41, 42, 43); }
+  else { base.push(5, 10, 11, 14, 18, 20, 21, 22, 23, 25, 26, 27, 28, 29, 29, 29, 30, 31, 36, 37, 39, 40, 41, 42, 43); }
 
   // New traps every 10 levels
   if (levelNum >= 10) base.push(32, 32); // vertical saw
