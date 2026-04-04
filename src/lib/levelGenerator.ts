@@ -1,0 +1,360 @@
+export interface Obstacle {
+  x: number;
+  type: 'spike' | 'block' | 'tall-spike' | 'double-spike' | 'triple-spike' |
+        'moving-block' | 'gap' | 'pillar' | 'saw' | 'platform' |
+        'spike-block' | 'orb' | 'portal' | 'laser' | 'wave-spike' |
+        'mini-saw-row' | 'spike-pit';
+  width: number;
+  height: number;
+  y?: number;
+  color?: string;
+}
+
+export interface ColorZone {
+  start: number; // 0-1 progress
+  color: string;
+  bgColor: string;
+  accentColor: string;
+  pulseColor: string;
+}
+
+export interface LevelData {
+  id: number;
+  name: string;
+  speed: number;
+  gravity: number;
+  jumpForce: number;
+  obstacles: Obstacle[];
+  groundY: number;
+  color: string;
+  bgColor: string;
+  accentColor: string;
+  pulseColor: string;
+  length: number;
+  colorZones: ColorZone[];
+}
+
+const THEMES = [
+  { color: 'hsl(160, 100%, 50%)', bg: 'hsl(240, 15%, 5%)', accent: 'hsl(120, 100%, 60%)', pulse: 'hsl(180, 100%, 70%)' },
+  { color: 'hsl(280, 100%, 60%)', bg: 'hsl(260, 20%, 6%)', accent: 'hsl(320, 100%, 65%)', pulse: 'hsl(260, 100%, 80%)' },
+  { color: 'hsl(40, 100%, 55%)', bg: 'hsl(20, 15%, 5%)', accent: 'hsl(25, 100%, 60%)', pulse: 'hsl(50, 100%, 75%)' },
+  { color: 'hsl(320, 100%, 60%)', bg: 'hsl(340, 15%, 5%)', accent: 'hsl(350, 100%, 65%)', pulse: 'hsl(310, 100%, 80%)' },
+  { color: 'hsl(180, 100%, 50%)', bg: 'hsl(200, 20%, 5%)', accent: 'hsl(160, 100%, 55%)', pulse: 'hsl(190, 100%, 70%)' },
+  { color: 'hsl(220, 100%, 60%)', bg: 'hsl(230, 20%, 5%)', accent: 'hsl(200, 100%, 65%)', pulse: 'hsl(240, 100%, 80%)' },
+  { color: 'hsl(0, 100%, 55%)', bg: 'hsl(0, 15%, 5%)', accent: 'hsl(15, 100%, 60%)', pulse: 'hsl(350, 100%, 75%)' },
+  { color: 'hsl(120, 100%, 45%)', bg: 'hsl(140, 15%, 5%)', accent: 'hsl(90, 100%, 55%)', pulse: 'hsl(130, 100%, 70%)' },
+  { color: 'hsl(50, 100%, 55%)', bg: 'hsl(40, 20%, 5%)', accent: 'hsl(30, 100%, 60%)', pulse: 'hsl(60, 100%, 75%)' },
+  { color: 'hsl(200, 100%, 55%)', bg: 'hsl(210, 20%, 5%)', accent: 'hsl(220, 100%, 65%)', pulse: 'hsl(195, 100%, 80%)' },
+  { color: 'hsl(270, 100%, 65%)', bg: 'hsl(280, 25%, 4%)', accent: 'hsl(300, 100%, 60%)', pulse: 'hsl(260, 100%, 85%)' },
+  { color: 'hsl(10, 100%, 55%)', bg: 'hsl(5, 20%, 4%)', accent: 'hsl(30, 100%, 55%)', pulse: 'hsl(0, 100%, 75%)' },
+  { color: 'hsl(150, 100%, 50%)', bg: 'hsl(170, 25%, 4%)', accent: 'hsl(130, 100%, 55%)', pulse: 'hsl(160, 100%, 75%)' },
+  { color: 'hsl(340, 100%, 55%)', bg: 'hsl(350, 20%, 4%)', accent: 'hsl(320, 100%, 60%)', pulse: 'hsl(0, 100%, 70%)' },
+  { color: 'hsl(60, 100%, 50%)', bg: 'hsl(70, 20%, 4%)', accent: 'hsl(45, 100%, 55%)', pulse: 'hsl(55, 100%, 80%)' },
+  { color: 'hsl(190, 100%, 55%)', bg: 'hsl(210, 25%, 3%)', accent: 'hsl(170, 100%, 50%)', pulse: 'hsl(200, 100%, 75%)' },
+  { color: 'hsl(30, 100%, 50%)', bg: 'hsl(15, 20%, 4%)', accent: 'hsl(45, 100%, 60%)', pulse: 'hsl(20, 100%, 70%)' },
+  { color: 'hsl(300, 100%, 55%)', bg: 'hsl(310, 20%, 4%)', accent: 'hsl(280, 100%, 60%)', pulse: 'hsl(330, 100%, 75%)' },
+  { color: 'hsl(80, 100%, 50%)', bg: 'hsl(100, 20%, 4%)', accent: 'hsl(60, 100%, 55%)', pulse: 'hsl(90, 100%, 75%)' },
+  { color: 'hsl(240, 100%, 65%)', bg: 'hsl(250, 30%, 3%)', accent: 'hsl(260, 100%, 70%)', pulse: 'hsl(220, 100%, 80%)' },
+];
+
+const LEVEL_NAMES = [
+  "Stereo Madness", "Back On Track", "Polargeist", "Dry Out", "Base After Base",
+  "Can't Let Go", "Jumper", "Time Machine", "Cycles", "xStep",
+  "Clutterfunk", "Theory of Everything", "Electroman Adventures", "Clubstep", "Electrodynamix",
+  "Hexagon Force", "Blast Processing", "Theory of Everything 2", "Geometrical Dominator", "Deadlocked",
+];
+
+function seededRandom(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 16807 + 0) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+function addSpikeRow(obs: Obstacle[], x: number, count: number, spacing: number): number {
+  for (let i = 0; i < count; i++) {
+    obs.push({ x: x + i * spacing, type: 'spike', width: 30, height: 30 });
+  }
+  return x + count * spacing;
+}
+
+function addStaircase(obs: Obstacle[], x: number, steps: number, up: boolean, rand: () => number): number {
+  for (let i = 0; i < steps; i++) {
+    const stepHeight = up ? 30 + i * 25 : 30 + (steps - 1 - i) * 25;
+    obs.push({ x: x + i * 50, type: 'block', width: 45, height: Math.min(stepHeight, 150) });
+  }
+  if (rand() > 0.4) {
+    const lastIdx = up ? steps - 1 : 0;
+    obs.push({ x: x + lastIdx * 50 + 7, type: 'spike', width: 30, height: 30, y: -30 });
+  }
+  return x + steps * 50;
+}
+
+type PatternFn = (obs: Obstacle[], x: number, diff: number, rand: () => number) => number;
+
+const PATTERNS: PatternFn[] = [
+  // 0: Single spike
+  (obs, x) => { obs.push({ x, type: 'spike', width: 30, height: 30 }); return x + 30; },
+  // 1: Double spike
+  (obs, x) => { obs.push({ x, type: 'double-spike', width: 60, height: 30 }); return x + 60; },
+  // 2: Triple spike
+  (obs, x) => { obs.push({ x, type: 'triple-spike', width: 90, height: 30 }); return x + 90; },
+  // 3: Tall spike
+  (obs, x) => { obs.push({ x, type: 'tall-spike', width: 30, height: 60 }); return x + 30; },
+  // 4: Block
+  (obs, x, _d, rand) => {
+    const w = 30 + rand() * 60, h = 30 + rand() * 40;
+    obs.push({ x, type: 'block', width: w, height: h }); return x + w;
+  },
+  // 5: Gap
+  (obs, x, diff) => {
+    const w = 50 + diff * 50;
+    obs.push({ x, type: 'gap', width: w, height: 200 }); return x + w;
+  },
+  // 6: Spike row
+  (obs, x, diff, rand) => {
+    const count = 3 + Math.floor(rand() * (1 + diff * 3));
+    return addSpikeRow(obs, x, count, 32);
+  },
+  // 7: Staircase up
+  (obs, x, diff, rand) => addStaircase(obs, x, 2 + Math.floor(rand() * (2 + diff * 3)), true, rand),
+  // 8: Staircase down
+  (obs, x, diff, rand) => addStaircase(obs, x, 2 + Math.floor(rand() * (2 + diff * 3)), false, rand),
+  // 9: Spike-block combo
+  (obs, x, _d, rand) => {
+    const bw = 40 + rand() * 40;
+    obs.push({ x, type: 'block', width: bw, height: 35 });
+    obs.push({ x: x + bw / 2 - 15, type: 'spike', width: 30, height: 30, y: -30 });
+    return x + bw;
+  },
+  // 10: Pillar
+  (obs, x, diff, rand) => {
+    const h = 80 + rand() * (60 + diff * 80);
+    obs.push({ x, type: 'pillar', width: 25, height: h }); return x + 25;
+  },
+  // 11: Saw blade
+  (obs, x) => { obs.push({ x, type: 'saw', width: 35, height: 35 }); return x + 35; },
+  // 12: Platform with spike
+  (obs, x, _d, rand) => {
+    const w = 60 + rand() * 40;
+    obs.push({ x, type: 'platform', width: w, height: 15, y: -80 });
+    obs.push({ x: x + w / 2 - 15, type: 'spike', width: 30, height: 30 });
+    return x + w;
+  },
+  // 13: Moving block
+  (obs, x) => { obs.push({ x, type: 'moving-block', width: 40, height: 40 }); return x + 40; },
+  // 14: Double gap
+  (obs, x, diff) => {
+    const gw = 40 + diff * 30;
+    obs.push({ x, type: 'gap', width: gw, height: 200 });
+    obs.push({ x: x + gw + 30, type: 'block', width: 40, height: 30 });
+    obs.push({ x: x + gw + 80, type: 'gap', width: gw, height: 200 });
+    return x + gw * 2 + 80;
+  },
+  // 15: Spike sandwich
+  (obs, x) => {
+    obs.push({ x, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 35, type: 'block', width: 40, height: 40 });
+    obs.push({ x: x + 80, type: 'spike', width: 30, height: 30 });
+    return x + 110;
+  },
+  // 16: Spike wall
+  (obs, x) => {
+    obs.push({ x, type: 'tall-spike', width: 30, height: 60 });
+    obs.push({ x: x + 35, type: 'spike', width: 30, height: 30 });
+    return x + 65;
+  },
+  // 17: Block corridor
+  (obs, x, _d, rand) => {
+    const n = 2 + Math.floor(rand() * 3);
+    let cx = x;
+    for (let i = 0; i < n; i++) {
+      obs.push({ x: cx, type: 'block', width: 35, height: 30 + rand() * 50 });
+      cx += 70;
+    }
+    return cx;
+  },
+  // 18: Laser beam
+  (obs, x, _d, rand) => {
+    const w = 80 + rand() * 60;
+    obs.push({ x, type: 'laser', width: w, height: 8, y: -40 - rand() * 40 });
+    return x + w;
+  },
+  // 19: Wave spikes
+  (obs, x, _d, rand) => {
+    const count = 3 + Math.floor(rand() * 3);
+    for (let i = 0; i < count; i++) {
+      const h = i % 2 === 0 ? 30 : 50;
+      obs.push({ x: x + i * 35, type: 'wave-spike', width: 28, height: h });
+    }
+    return x + count * 35;
+  },
+  // 20: Mini saw row
+  (obs, x, _d, rand) => {
+    const count = 2 + Math.floor(rand() * 3);
+    for (let i = 0; i < count; i++) {
+      obs.push({ x: x + i * 50, type: 'saw', width: 28, height: 28 });
+    }
+    return x + count * 50;
+  },
+  // 21: Spike pit
+  (obs, x, diff) => {
+    const w = 60 + diff * 40;
+    obs.push({ x, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 35, type: 'gap', width: w, height: 200 });
+    obs.push({ x: x + 35 + w + 5, type: 'spike', width: 30, height: 30 });
+    return x + 70 + w;
+  },
+  // 22: Tower with saw on top
+  (obs, x, _d, rand) => {
+    const h = 60 + rand() * 80;
+    obs.push({ x, type: 'block', width: 40, height: h });
+    obs.push({ x: x + 2, type: 'saw', width: 36, height: 36, y: -(h + 36) });
+    return x + 40;
+  },
+  // 23: Zigzag spikes
+  (obs, x) => {
+    obs.push({ x, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 60, type: 'tall-spike', width: 30, height: 55 });
+    obs.push({ x: x + 120, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 180, type: 'tall-spike', width: 30, height: 55 });
+    return x + 210;
+  },
+  // 24: Orb + spike
+  (obs, x) => {
+    obs.push({ x, type: 'orb', width: 24, height: 24, y: -50 });
+    obs.push({ x: x + 50, type: 'spike', width: 30, height: 30 });
+    return x + 80;
+  },
+  // 25: Saw corridor (hard)
+  (obs, x, _d, rand) => {
+    const n = 3 + Math.floor(rand() * 2);
+    for (let i = 0; i < n; i++) {
+      obs.push({ x: x + i * 60, type: 'saw', width: 32, height: 32 });
+      if (i < n - 1) obs.push({ x: x + i * 60 + 30, type: 'spike', width: 25, height: 25 });
+    }
+    return x + n * 60;
+  },
+  // 26: Block + laser combo (hard)
+  (obs, x, _d, rand) => {
+    const bw = 50 + rand() * 30;
+    obs.push({ x, type: 'block', width: bw, height: 40 });
+    obs.push({ x: x - 10, type: 'laser', width: bw + 20, height: 8, y: -80 });
+    obs.push({ x: x + bw + 10, type: 'spike', width: 30, height: 30 });
+    return x + bw + 40;
+  },
+  // 27: Triple gap gauntlet (very hard)
+  (obs, x, diff) => {
+    const gw = 35 + diff * 20;
+    for (let i = 0; i < 3; i++) {
+      obs.push({ x: x + i * (gw + 40), type: 'gap', width: gw, height: 200 });
+      if (i < 2) obs.push({ x: x + i * (gw + 40) + gw + 5, type: 'block', width: 30, height: 25 });
+    }
+    return x + 3 * (gw + 40);
+  },
+  // 28: Pillar maze (very hard)
+  (obs, x, diff, rand) => {
+    const n = 3 + Math.floor(rand() * 2);
+    for (let i = 0; i < n; i++) {
+      const h = 60 + rand() * (80 + diff * 60);
+      obs.push({ x: x + i * 45, type: 'pillar', width: 20, height: h });
+      if (rand() > 0.5) obs.push({ x: x + i * 45 + 20, type: 'spike', width: 22, height: 22 });
+    }
+    return x + n * 45;
+  },
+  // 29: Nightmare combo (extreme)
+  (obs, x, _d, rand) => {
+    obs.push({ x, type: 'saw', width: 35, height: 35 });
+    obs.push({ x: x + 40, type: 'tall-spike', width: 30, height: 60 });
+    obs.push({ x: x + 75, type: 'gap', width: 50, height: 200 });
+    obs.push({ x: x + 130, type: 'saw', width: 35, height: 35 });
+    obs.push({ x: x + 170, type: 'triple-spike', width: 90, height: 30 });
+    if (rand() > 0.3) obs.push({ x: x + 80, type: 'laser', width: 80, height: 8, y: -70 });
+    return x + 260;
+  },
+];
+
+function getAvailablePatterns(difficulty: number): number[] {
+  if (difficulty < 0.1) return [0, 0, 0, 4, 4, 1];
+  if (difficulty < 0.2) return [0, 1, 3, 4, 6, 9, 19];
+  if (difficulty < 0.3) return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 19, 24];
+  if (difficulty < 0.4) return [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 18, 19, 20];
+  if (difficulty < 0.5) return [2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+  if (difficulty < 0.6) return [2, 5, 6, 7, 8, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25];
+  if (difficulty < 0.7) return [5, 6, 7, 8, 10, 11, 14, 15, 16, 17, 18, 20, 21, 22, 23, 25, 26];
+  if (difficulty < 0.8) return [5, 6, 10, 11, 14, 16, 17, 18, 20, 21, 22, 23, 25, 26, 27, 28];
+  if (difficulty < 0.9) return [5, 10, 11, 14, 16, 18, 20, 21, 22, 23, 25, 26, 27, 28, 29];
+  return [5, 10, 11, 14, 18, 20, 21, 22, 23, 25, 26, 27, 28, 29, 29, 29];
+}
+
+const FPS_CONST = 60;
+const BASE_DURATION_SECS = 300;
+
+export function generateLevel(levelNum: number): LevelData {
+  const rand = seededRandom(levelNum * 7919 + 31);
+  const difficulty = Math.min(levelNum / 100, 1);
+  const speed = 3 + difficulty * 5;
+  const gravity = 0.5 + difficulty * 0.3;
+  const jumpForce = -(9 + difficulty * 3);
+  const baseLevelLength = speed * FPS_CONST * BASE_DURATION_SECS;
+
+  const obstacles: Obstacle[] = [];
+  let currentX = 600;
+  const availablePatterns = getAvailablePatterns(difficulty);
+  
+  const minGap = Math.max(50, 220 - difficulty * 180);
+  const maxGap = Math.max(100, 350 - difficulty * 260);
+  
+  const totalSections = 14 + Math.floor(difficulty * 18);
+  const sectionLength = (baseLevelLength - 1200) / totalSections;
+  
+  for (let section = 0; section < totalSections; section++) {
+    const sectionStart = 600 + section * sectionLength;
+    const sectionEnd = sectionStart + sectionLength;
+    
+    const isIntense = section % 5 !== 0;
+    const densityMultiplier = isIntense ? 1.0 : 0.5;
+    
+    if (currentX < sectionStart) currentX = sectionStart;
+    
+    while (currentX < sectionEnd - 100) {
+      const gap = (minGap + rand() * (maxGap - minGap)) / densityMultiplier;
+      currentX += gap;
+      if (currentX >= sectionEnd - 100) break;
+      
+      const patternIdx = availablePatterns[Math.floor(rand() * availablePatterns.length)];
+      currentX = PATTERNS[patternIdx](obstacles, currentX, difficulty, rand);
+    }
+  }
+
+  // Primary theme
+  const primaryTheme = THEMES[levelNum % THEMES.length];
+  
+  // Generate color zones (2-5 per level based on difficulty)
+  const numZones = 2 + Math.floor(rand() * (1 + difficulty * 3));
+  const colorZones: ColorZone[] = [];
+  for (let i = 0; i < numZones; i++) {
+    const zoneTheme = THEMES[(levelNum + i * 7 + Math.floor(rand() * 5)) % THEMES.length];
+    colorZones.push({
+      start: i / numZones,
+      color: zoneTheme.color,
+      bgColor: zoneTheme.bg,
+      accentColor: zoneTheme.accent,
+      pulseColor: zoneTheme.pulse,
+    });
+  }
+
+  const name = levelNum <= 20 ? LEVEL_NAMES[levelNum - 1] : `Level ${levelNum}`;
+  
+  return {
+    id: levelNum, name, speed, gravity, jumpForce, obstacles,
+    groundY: 350,
+    color: primaryTheme.color,
+    bgColor: primaryTheme.bg,
+    accentColor: primaryTheme.accent,
+    pulseColor: primaryTheme.pulse,
+    length: baseLevelLength,
+    colorZones,
+  };
+}
