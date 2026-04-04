@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          active_skin: string
+          avatar_url: string | null
+          coins: number
+          created_at: string
+          display_name: string | null
+          id: string
+          level_progress: Json
+          max_unlocked: number
+          owned_skins: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_skin?: string
+          avatar_url?: string | null
+          coins?: number
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          level_progress?: Json
+          max_unlocked?: number
+          owned_skins?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_skin?: string
+          avatar_url?: string | null
+          coins?: number
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          level_progress?: Json
+          max_unlocked?: number
+          owned_skins?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
