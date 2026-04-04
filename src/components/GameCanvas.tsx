@@ -14,6 +14,11 @@ interface GameCanvasProps {
   onRestart?: () => void;
   onPauseMusic?: () => void;
   onResumeMusic?: () => void;
+  skinColor?: string;
+  skinGlowColor?: string;
+  skinInnerColor?: string;
+  skinEyeColor?: string;
+  skinShape?: 'square' | 'diamond' | 'circle' | 'triangle' | 'star' | 'hexagon';
 }
 
 interface PlayerState {
