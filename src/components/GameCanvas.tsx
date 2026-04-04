@@ -28,6 +28,9 @@ interface PlayerState {
   rotation: number;
   isGrounded: boolean;
   isDead: boolean;
+  mode: 'normal' | 'ball' | 'airplane';
+  isImmortal: boolean;
+  immortalTimer: number;
 }
 
 interface Particle {
