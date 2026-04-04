@@ -251,32 +251,47 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       if (obs.type === 'gap') {
         return px + PLAYER_SIZE > obs.x && px < obs.x + obs.width && py + PLAYER_SIZE >= level.groundY;
       }
-      if (obs.type === 'platform' || obs.type === 'orb') return false;
+      if (obs.type === 'platform' || obs.type === 'orb' || obs.type === 'solid-platform' ||
+          obs.type === 'mushroom' || obs.type === 'mode-ball' || obs.type === 'mode-airplane' || obs.type === 'mode-normal') return false;
 
       let obsY: number;
-      if (obs.type === 'laser') {
+      if (obs.type === 'laser' || obs.type === 'pulse-laser') {
         obsY = level.groundY + (obs.y || -60);
-      } else if (obs.type === 'wave-spike') {
+      } else if (obs.type === 'ceiling-spike') {
+        obsY = obs.y !== undefined ? level.groundY + obs.y : 0;
+      } else if (obs.type === 'vertical-saw') {
+        const sawY = obs.y !== undefined ? level.groundY + obs.y + obs.height / 2 : level.groundY - obs.height / 2;
+        const cx = obs.x + obs.width / 2, cy = sawY;
+        const dist = Math.sqrt((px + PLAYER_SIZE / 2 - cx) ** 2 + (py + PLAYER_SIZE / 2 - cy) ** 2);
+        return dist < obs.width / 2 + PLAYER_SIZE / 2 - 4;
+      } else if (obs.type === 'hammer') {
         obsY = level.groundY - obs.height;
       } else {
         obsY = level.groundY - obs.height;
       }
 
       if (obs.type === 'spike' || obs.type === 'tall-spike' || obs.type === 'double-spike' ||
-          obs.type === 'triple-spike' || obs.type === 'wave-spike') {
+          obs.type === 'triple-spike' || obs.type === 'wave-spike' || obs.type === 'ceiling-spike') {
         const m = 6;
         return px + PLAYER_SIZE - m > obs.x + m && px + m < obs.x + obs.width - m &&
                py + PLAYER_SIZE - m > obsY + m && py + m < obsY + obs.height - m;
       }
-      if (obs.type === 'saw') {
+      if (obs.type === 'saw' || obs.type === 'vertical-saw') {
         const sawY = obs.y !== undefined ? level.groundY + obs.y + obs.height / 2 : level.groundY - obs.height / 2;
         const cx = obs.x + obs.width / 2, cy = sawY;
         const dist = Math.sqrt((px + PLAYER_SIZE / 2 - cx) ** 2 + (py + PLAYER_SIZE / 2 - cy) ** 2);
         return dist < obs.width / 2 + PLAYER_SIZE / 2 - 4;
       }
-      if (obs.type === 'laser') {
+      if (obs.type === 'laser' || obs.type === 'pulse-laser') {
         return px + PLAYER_SIZE > obs.x && px < obs.x + obs.width &&
                py + PLAYER_SIZE > obsY && py < obsY + obs.height + 6;
+      }
+      if (obs.type === 'hammer') {
+        return px + PLAYER_SIZE > obs.x && px < obs.x + obs.width &&
+               py + PLAYER_SIZE > obsY && py < obsY + obs.height;
+      }
+      if (obs.type === 'vanishing-block') {
+        return false; // Handled separately as a landing platform
       }
       if (obs.type === 'pillar') {
         return px + PLAYER_SIZE > obs.x && px < obs.x + obs.width &&
