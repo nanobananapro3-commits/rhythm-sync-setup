@@ -276,7 +276,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         return px + PLAYER_SIZE - m > obs.x + m && px + m < obs.x + obs.width - m &&
                py + PLAYER_SIZE - m > obsY + m && py + m < obsY + obs.height - m;
       }
-      if (obs.type === 'saw' || obs.type === 'vertical-saw') {
+      if (obs.type === 'saw') {
         const sawY = obs.y !== undefined ? level.groundY + obs.y + obs.height / 2 : level.groundY - obs.height / 2;
         const cx = obs.x + obs.width / 2, cy = sawY;
         const dist = Math.sqrt((px + PLAYER_SIZE / 2 - cx) ** 2 + (py + PLAYER_SIZE / 2 - cy) ** 2);
