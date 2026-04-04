@@ -750,7 +750,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     animFrameRef.current = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [level, isPlaying, currentLyric, uiState, onDeath, onComplete, onProgressChange, scaleFactor, effectiveDuration]);
+  }, [level, isPlaying, currentLyric, uiState, onDeath, onComplete, onProgressChange, scaleFactor, effectiveDuration, skinColor, skinGlowColor, skinInnerColor, skinEyeColor, skinShape]);
 
   const findSafeRespawnCamera = useCallback((cam: number) => {
     const obstacles = scaledObstacles.current;
