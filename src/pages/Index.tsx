@@ -4,13 +4,18 @@ import GameCanvas from '@/components/GameCanvas';
 import MusicSearch from '@/components/MusicSearch';
 import AudioPlayer, { AudioPlayerHandle } from '@/components/AudioPlayer';
 import LevelSelector from '@/components/LevelSelector';
+import SkinShop from '@/components/SkinShop';
 import { generateLevel, LevelData } from '@/lib/levelGenerator';
 import { LyricsResult, SyncedLyricLine } from '@/lib/lrclib';
+import { GameState, loadGameState, saveGameState, calculateStars, calculateCoinsEarned, getActiveSkin } from '@/lib/gameState';
 
-type GameScreen = 'menu' | 'levels' | 'music' | 'playing';
+type GameScreen = 'menu' | 'levels' | 'music' | 'playing' | 'shop';
+
+const MAX_CONTINUES = 3;
 
 const Index: React.FC = () => {
   const [screen, setScreen] = useState<GameScreen>('menu');
+  const [gameState, setGameState] = useState<GameState>(loadGameState);
   const [selectedLevel, setSelectedLevel] = useState<LevelData | null>(null);
   const [lyrics, setLyrics] = useState<SyncedLyricLine[]>([]);
   const [lyricsInfo, setLyricsInfo] = useState('');
@@ -18,19 +23,19 @@ const Index: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [musicTime, setMusicTime] = useState(0);
   const [songDuration, setSongDuration] = useState(0);
-  const [maxUnlocked, setMaxUnlocked] = useState(() => {
-    const saved = localStorage.getItem('gd_max_level');
-    return saved ? parseInt(saved) : 100;
-  });
   const [attempts, setAttempts] = useState(0);
   const [songName, setSongName] = useState('');
+  const [completionInfo, setCompletionInfo] = useState<{ stars: number; coins: number } | null>(null);
   const audioPlayerRef = useRef<AudioPlayerHandle>(null);
+  const livesRemainingRef = useRef(MAX_CONTINUES);
 
   const handleSelectLevel = (levelNum: number) => {
     const level = generateLevel(levelNum);
     setSelectedLevel(level);
     setScreen('music');
     setAttempts(0);
+    livesRemainingRef.current = MAX_CONTINUES;
+    setCompletionInfo(null);
   };
 
   const handleSongSelect = (artist: string, title: string, result: LyricsResult, url: string) => {
@@ -47,20 +52,52 @@ const Index: React.FC = () => {
     setScreen('playing');
   };
 
-  const handleDeath = useCallback(() => setAttempts(prev => prev + 1), []);
+  const handleDeath = useCallback(() => {
+    setAttempts(prev => prev + 1);
+    livesRemainingRef.current = Math.max(0, livesRemainingRef.current - 1);
+  }, []);
 
   const handleComplete = useCallback(() => {
-    if (selectedLevel) {
-      const nextLevel = selectedLevel.id + 1;
-      if (nextLevel > maxUnlocked) {
-        setMaxUnlocked(nextLevel);
-        localStorage.setItem('gd_max_level', String(nextLevel));
-      }
+    if (!selectedLevel) return;
+    const levelNum = selectedLevel.id;
+    const lives = livesRemainingRef.current;
+    const stars = calculateStars(lives);
+    const previousStars = gameState.levelProgress[levelNum]?.stars || 0;
+    const coinsEarned = calculateCoinsEarned(levelNum, stars, previousStars);
+
+    const newState: GameState = { ...gameState };
+
+    // Update level progress (only if better)
+    if (stars > previousStars) {
+      newState.levelProgress = {
+        ...newState.levelProgress,
+        [levelNum]: { stars, completed: true },
+      };
+    } else if (!newState.levelProgress[levelNum]?.completed) {
+      newState.levelProgress = {
+        ...newState.levelProgress,
+        [levelNum]: { stars: Math.max(stars, previousStars), completed: true },
+      };
     }
-  }, [selectedLevel, maxUnlocked]);
+
+    // Unlock next level
+    const nextLevel = levelNum + 1;
+    if (nextLevel > newState.maxUnlocked && nextLevel <= 100) {
+      newState.maxUnlocked = nextLevel;
+    }
+
+    // Add coins
+    newState.coins += coinsEarned;
+
+    saveGameState(newState);
+    setGameState(newState);
+    setCompletionInfo({ stars, coins: coinsEarned });
+  }, [selectedLevel, gameState]);
 
   const handleRestart = useCallback(() => {
     audioPlayerRef.current?.restart();
+    livesRemainingRef.current = MAX_CONTINUES;
+    setCompletionInfo(null);
   }, []);
 
   const handleProgressChange = useCallback((p: number) => void p, []);
@@ -77,6 +114,18 @@ const Index: React.FC = () => {
     setIsPlaying(true);
   }, []);
 
+  const activeSkin = getActiveSkin(gameState);
+
+  if (screen === 'shop') {
+    return (
+      <SkinShop
+        gameState={gameState}
+        onStateChange={setGameState}
+        onBack={() => setScreen('menu')}
+      />
+    );
+  }
+
   if (screen === 'menu') {
     return (
       <div className="min-h-screen bg-background bg-grid flex flex-col items-center justify-center gap-8 p-4">
@@ -84,10 +133,12 @@ const Index: React.FC = () => {
           <h1 className="font-display text-5xl sm:text-7xl font-black text-primary text-glow-primary tracking-wider">GEOMETRY</h1>
           <h1 className="font-display text-5xl sm:text-7xl font-black text-secondary text-glow-secondary tracking-wider -mt-2">DASH</h1>
           <p className="font-body text-muted-foreground mt-4 text-lg">100 niveles · Tu MP3 · Letras sincronizadas</p>
+          <p className="font-display text-accent mt-2">🪙 {gameState.coins} monedas</p>
         </div>
         <div className="flex flex-col gap-3 w-64">
           <Button variant="neon" size="lg" onClick={() => setScreen('levels')}>▶ JUGAR</Button>
           <Button variant="neon-outline" size="lg" onClick={() => handleSelectLevel(1)}>NIVEL 1</Button>
+          <Button variant="neon-secondary" size="lg" onClick={() => setScreen('shop')}>🛒 TIENDA</Button>
         </div>
         <div className="text-center text-muted-foreground text-sm font-body mt-8 max-w-md">
           <p>Espacio / Click / Toque para saltar</p>
@@ -100,8 +151,11 @@ const Index: React.FC = () => {
   if (screen === 'levels') {
     return (
       <div className="min-h-screen bg-background bg-grid flex flex-col items-center justify-center gap-6 p-4">
-        <Button variant="neon-outline" size="sm" onClick={() => setScreen('menu')} className="self-start">← Menú</Button>
-        <LevelSelector onSelectLevel={handleSelectLevel} maxUnlocked={maxUnlocked} />
+        <div className="w-full max-w-4xl flex items-center justify-between">
+          <Button variant="neon-outline" size="sm" onClick={() => setScreen('menu')}>← Menú</Button>
+          <span className="font-display text-sm text-accent">🪙 {gameState.coins}</span>
+        </div>
+        <LevelSelector onSelectLevel={handleSelectLevel} gameState={gameState} />
       </div>
     );
   }
@@ -138,17 +192,34 @@ const Index: React.FC = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center gap-4 p-4">
       <div className="w-full max-w-[800px] flex items-center justify-between">
-        <Button variant="neon-outline" size="sm" onClick={() => { setScreen('music'); setIsPlaying(false); }}>
+        <Button variant="neon-outline" size="sm" onClick={() => { setScreen('music'); setIsPlaying(false); setCompletionInfo(null); }}>
           ← Cambiar canción
         </Button>
-        <div className="text-right">
+        <div className="text-right flex items-center gap-3">
+          <span className="font-display text-xs text-accent">🪙 {gameState.coins}</span>
           <span className="font-display text-sm text-primary">{selectedLevel?.name}</span>
-          <span className="font-body text-xs text-muted-foreground ml-3">Intentos: {attempts}</span>
+          <span className="font-body text-xs text-muted-foreground">Intentos: {attempts}</span>
         </div>
       </div>
 
       {songName && <p className="font-body text-sm text-muted-foreground">🎵 {songName}</p>}
       {lyricsInfo && <p className="font-body text-xs text-muted-foreground">{lyricsInfo}</p>}
+
+      {completionInfo && (
+        <div className="text-center p-3 rounded-lg neon-border">
+          <p className="font-display text-lg text-primary">
+            {[1, 2, 3].map(i => (
+              <span key={i} style={{ color: i <= completionInfo.stars ? 'hsl(45,100%,55%)' : 'hsla(0,0%,100%,0.15)', fontSize: '24px' }}>★</span>
+            ))}
+          </p>
+          {completionInfo.coins > 0 && (
+            <p className="font-display text-sm text-accent mt-1">+{completionInfo.coins} 🪙</p>
+          )}
+          {completionInfo.coins === 0 && (
+            <p className="font-body text-xs text-muted-foreground mt-1">Ya obtuviste estas estrellas</p>
+          )}
+        </div>
+      )}
 
       {selectedLevel && (
         <GameCanvas
@@ -163,6 +234,11 @@ const Index: React.FC = () => {
           onRestart={handleRestart}
           onPauseMusic={handlePauseMusic}
           onResumeMusic={handleResumeMusic}
+          skinColor={activeSkin.color}
+          skinGlowColor={activeSkin.glowColor}
+          skinInnerColor={activeSkin.innerColor}
+          skinEyeColor={activeSkin.eyeColor}
+          skinShape={activeSkin.shape}
         />
       )}
 
