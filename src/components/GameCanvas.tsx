@@ -14,6 +14,11 @@ interface GameCanvasProps {
   onRestart?: () => void;
   onPauseMusic?: () => void;
   onResumeMusic?: () => void;
+  skinColor?: string;
+  skinGlowColor?: string;
+  skinInnerColor?: string;
+  skinEyeColor?: string;
+  skinShape?: 'square' | 'diamond' | 'circle' | 'triangle' | 'star' | 'hexagon';
 }
 
 interface PlayerState {
@@ -23,6 +28,9 @@ interface PlayerState {
   rotation: number;
   isGrounded: boolean;
   isDead: boolean;
+  mode: 'normal' | 'ball' | 'airplane';
+  isImmortal: boolean;
+  immortalTimer: number;
 }
 
 interface Particle {
@@ -46,11 +54,12 @@ const BASE_DURATION = 300;
 
 const GameCanvas: React.FC<GameCanvasProps> = ({
   level, lyrics, isPlaying, musicTime, songDuration, onDeath, onComplete, onProgressChange, onRestart, onPauseMusic, onResumeMusic,
+  skinColor, skinGlowColor, skinInnerColor, skinEyeColor, skinShape = 'square',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const playerRef = useRef<PlayerState>({
     x: 100, y: level.groundY - PLAYER_SIZE, vy: 0, rotation: 0,
-    isGrounded: true, isDead: false,
+    isGrounded: true, isDead: false, mode: 'normal', isImmortal: false, immortalTimer: 0,
   });
   const cameraXRef = useRef(0);
   const jumpingRef = useRef(false);
@@ -103,7 +112,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   useEffect(() => {
     const p = playerRef.current;
     p.x = 100; p.y = level.groundY - PLAYER_SIZE; p.vy = 0; p.rotation = 0;
-    p.isGrounded = true; p.isDead = false;
+    p.isGrounded = true; p.isDead = false; p.mode = 'normal'; p.isImmortal = false; p.immortalTimer = 0;
     cameraXRef.current = 0; continuesUsedRef.current = 0;
     gameOverRef.current = false; completedRef.current = false;
     particlesRef.current = [];
@@ -242,19 +251,27 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       if (obs.type === 'gap') {
         return px + PLAYER_SIZE > obs.x && px < obs.x + obs.width && py + PLAYER_SIZE >= level.groundY;
       }
-      if (obs.type === 'platform' || obs.type === 'orb') return false;
+      if (obs.type === 'platform' || obs.type === 'orb' || obs.type === 'solid-platform' ||
+          obs.type === 'mushroom' || obs.type === 'mode-ball' || obs.type === 'mode-airplane' || obs.type === 'mode-normal') return false;
 
       let obsY: number;
-      if (obs.type === 'laser') {
+      if (obs.type === 'laser' || obs.type === 'pulse-laser') {
         obsY = level.groundY + (obs.y || -60);
-      } else if (obs.type === 'wave-spike') {
+      } else if (obs.type === 'ceiling-spike') {
+        obsY = obs.y !== undefined ? level.groundY + obs.y : 0;
+      } else if (obs.type === 'vertical-saw') {
+        const sawY = obs.y !== undefined ? level.groundY + obs.y + obs.height / 2 : level.groundY - obs.height / 2;
+        const cx = obs.x + obs.width / 2, cy = sawY;
+        const dist = Math.sqrt((px + PLAYER_SIZE / 2 - cx) ** 2 + (py + PLAYER_SIZE / 2 - cy) ** 2);
+        return dist < obs.width / 2 + PLAYER_SIZE / 2 - 4;
+      } else if (obs.type === 'hammer') {
         obsY = level.groundY - obs.height;
       } else {
         obsY = level.groundY - obs.height;
       }
 
       if (obs.type === 'spike' || obs.type === 'tall-spike' || obs.type === 'double-spike' ||
-          obs.type === 'triple-spike' || obs.type === 'wave-spike') {
+          obs.type === 'triple-spike' || obs.type === 'wave-spike' || obs.type === 'ceiling-spike') {
         const m = 6;
         return px + PLAYER_SIZE - m > obs.x + m && px + m < obs.x + obs.width - m &&
                py + PLAYER_SIZE - m > obsY + m && py + m < obsY + obs.height - m;
@@ -265,9 +282,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         const dist = Math.sqrt((px + PLAYER_SIZE / 2 - cx) ** 2 + (py + PLAYER_SIZE / 2 - cy) ** 2);
         return dist < obs.width / 2 + PLAYER_SIZE / 2 - 4;
       }
-      if (obs.type === 'laser') {
+      if (obs.type === 'laser' || obs.type === 'pulse-laser') {
         return px + PLAYER_SIZE > obs.x && px < obs.x + obs.width &&
                py + PLAYER_SIZE > obsY && py < obsY + obs.height + 6;
+      }
+      if (obs.type === 'hammer') {
+        return px + PLAYER_SIZE > obs.x && px < obs.x + obs.width &&
+               py + PLAYER_SIZE > obsY && py < obsY + obs.height;
+      }
+      if (obs.type === 'vanishing-block') {
+        return false; // Handled separately as a landing platform
       }
       if (obs.type === 'pillar') {
         return px + PLAYER_SIZE > obs.x && px < obs.x + obs.width &&
@@ -318,11 +342,59 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         return;
       }
 
-      // Physics
-      if (jumpingRef.current && player.isGrounded) {
-        player.vy = level.jumpForce; player.isGrounded = false;
+      // Immortality timer
+      if (player.isImmortal) {
+        player.immortalTimer--;
+        if (player.immortalTimer <= 0) {
+          player.isImmortal = false;
+        }
       }
-      player.vy += level.gravity; player.y += player.vy;
+
+      // Mode switches
+      for (const obs of obstacles) {
+        if (Math.abs(obs.x - player.x) > 50) continue;
+        if (obs.type === 'mode-ball') player.mode = 'ball';
+        else if (obs.type === 'mode-airplane') player.mode = 'airplane';
+        else if (obs.type === 'mode-normal') player.mode = 'normal';
+        else if (obs.type === 'mushroom' && !player.isImmortal) {
+          player.isImmortal = true;
+          player.immortalTimer = 300; // 5 seconds at 60fps
+        }
+      }
+
+      // Physics based on mode
+      if (player.mode === 'airplane') {
+        // Airplane: hold to go up, release to go down
+        if (jumpingRef.current) {
+          player.vy = Math.max(player.vy - 0.8, -5);
+        } else {
+          player.vy = Math.min(player.vy + 0.4, 4);
+        }
+        player.y += player.vy;
+        player.isGrounded = false;
+        // Clamp to screen
+        if (player.y < 10) { player.y = 10; player.vy = 0; }
+        if (player.y >= level.groundY - PLAYER_SIZE) {
+          player.y = level.groundY - PLAYER_SIZE; player.vy = 0;
+        }
+        player.rotation += 2;
+      } else if (player.mode === 'ball') {
+        // Ball: click to flip gravity
+        if (jumpingRef.current && player.isGrounded) {
+          player.vy = level.jumpForce * 0.8;
+          player.isGrounded = false;
+        }
+        player.vy += level.gravity; player.y += player.vy;
+        player.rotation += 8;
+      } else {
+        // Normal mode
+        if (jumpingRef.current && player.isGrounded) {
+          player.vy = level.jumpForce; player.isGrounded = false;
+        }
+        player.vy += level.gravity; player.y += player.vy;
+        if (!player.isGrounded) player.rotation += 5;
+        else player.rotation = Math.round(player.rotation / 90) * 90;
+      }
 
       const wasInAir = !player.isGrounded;
       if (player.y >= level.groundY - PLAYER_SIZE) {
@@ -330,12 +402,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
       if (player.y < 0) { player.y = 0; player.vy = 0; }
 
-      if (wasInAir && player.isGrounded) {
+      if (wasInAir && player.isGrounded && player.mode !== 'airplane') {
         spawnGroundParticle(player.x - cameraXRef.current, player.y, zc.accentColor);
       }
-
-      if (!player.isGrounded) player.rotation += 5;
-      else player.rotation = Math.round(player.rotation / 90) * 90;
 
       cameraXRef.current += level.speed;
       player.x = cameraXRef.current + 100;
@@ -349,18 +418,25 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // Trail particles
       if (frameCountRef.current % 2 === 0) {
-        spawnTrailParticle(player.x - cameraXRef.current, player.y, zc.color);
+        spawnTrailParticle(player.x - cameraXRef.current, player.y, player.isImmortal ? 'hsl(45,100%,60%)' : zc.color);
       }
 
-      // Platform landings
+      // Platform & solid-platform landings + ceiling collisions
       for (const obs of obstacles) {
-        if (obs.type !== 'platform' && obs.type !== 'block' && obs.type !== 'moving-block' && obs.type !== 'pillar') continue;
+        if (obs.type !== 'platform' && obs.type !== 'solid-platform' && obs.type !== 'block' && obs.type !== 'moving-block' && obs.type !== 'pillar' && obs.type !== 'vanishing-block') continue;
         if (Math.abs(obs.x - player.x) > 200) continue;
-        if (obs.type === 'platform') {
+        
+        if (obs.type === 'platform' || obs.type === 'solid-platform' || obs.type === 'vanishing-block') {
           const platY = level.groundY + (obs.y || -80);
+          // Landing on top
           if (player.x + PLAYER_SIZE > obs.x && player.x < obs.x + obs.width &&
               player.vy >= 0 && player.y + PLAYER_SIZE <= platY + 8 && player.y + PLAYER_SIZE + player.vy >= platY) {
             player.y = platY - PLAYER_SIZE; player.vy = 0; player.isGrounded = true;
+          }
+          // Ceiling collision (solid platform only - can't pass through from below)
+          if (obs.type === 'solid-platform' && player.x + PLAYER_SIZE > obs.x && player.x < obs.x + obs.width &&
+              player.vy < 0 && player.y >= platY + obs.height - 5 && player.y + player.vy <= platY + obs.height) {
+            player.y = platY + obs.height; player.vy = 0;
           }
         }
       }
@@ -370,11 +446,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (Math.abs(obs.x - player.x) > 200) continue;
         if (obs.type === 'gap') {
           if (player.x + PLAYER_SIZE > obs.x && player.x < obs.x + obs.width && player.y + PLAYER_SIZE >= level.groundY) {
+            if (player.isImmortal) continue;
             player.isDead = true; handlePlayerDeath(); return;
           }
           continue;
         }
-        if (obs.type === 'platform' || obs.type === 'orb') continue;
+        if (obs.type === 'platform' || obs.type === 'orb' || obs.type === 'solid-platform' ||
+            obs.type === 'mushroom' || obs.type === 'mode-ball' || obs.type === 'mode-airplane' ||
+            obs.type === 'mode-normal' || obs.type === 'vanishing-block') continue;
         if (checkCollision(player.x, player.y, obs)) {
           if ((obs.type === 'block' || obs.type === 'moving-block' || obs.type === 'pillar') && player.vy >= 0) {
             const obsTop = level.groundY - obs.height;
@@ -382,6 +461,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
               player.y = obsTop - PLAYER_SIZE; player.vy = 0; player.isGrounded = true; continue;
             }
           }
+          if (player.isImmortal) continue;
           player.isDead = true; handlePlayerDeath(); return;
         }
       }
@@ -622,20 +702,54 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // Player
       const spx = player.x - cam;
+      const pColor = player.isDead ? 'hsl(0,100%,55%)' : (skinColor || zc.color);
+      const pGlow = player.isDead ? 'hsl(0,100%,55%)' : (skinGlowColor || zc.color);
+      const pInner = player.isDead ? 'hsl(0,100%,70%)' : (skinInnerColor || 'hsla(0,0%,100%,0.3)');
+      const pEye = skinEyeColor || 'hsla(0,0%,100%,0.8)';
+      const half = PLAYER_SIZE / 2;
       ctx.save();
-      ctx.translate(spx + PLAYER_SIZE / 2, player.y + PLAYER_SIZE / 2);
+      ctx.translate(spx + half, player.y + half);
       ctx.rotate((player.rotation * Math.PI) / 180);
-      ctx.shadowColor = player.isDead ? 'hsl(0,100%,55%)' : zc.color;
+      ctx.shadowColor = pGlow;
       ctx.shadowBlur = 18;
-      ctx.fillStyle = (player.isDead ? 'hsl(0,100%,55%)' : zc.color).replace(')', ', 0.2)').replace('hsl(', 'hsla(');
-      ctx.fillRect(-PLAYER_SIZE / 2 - 3, -PLAYER_SIZE / 2 - 3, PLAYER_SIZE + 6, PLAYER_SIZE + 6);
-      ctx.fillStyle = player.isDead ? 'hsl(0,100%,55%)' : zc.color;
-      ctx.fillRect(-PLAYER_SIZE / 2, -PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
-      ctx.fillStyle = player.isDead ? 'hsl(0,100%,70%)' : 'hsla(0,0%,100%,0.3)';
-      ctx.fillRect(-PLAYER_SIZE / 2 + 4, -PLAYER_SIZE / 2 + 4, PLAYER_SIZE - 8, PLAYER_SIZE - 8);
+      // Glow outline
+      ctx.fillStyle = pColor.replace(')', ', 0.2)').replace('hsl(', 'hsla(');
+      ctx.fillRect(-half - 3, -half - 3, PLAYER_SIZE + 6, PLAYER_SIZE + 6);
+      // Main shape
+      ctx.fillStyle = pColor;
+      if (skinShape === 'circle') {
+        ctx.beginPath(); ctx.arc(0, 0, half, 0, Math.PI * 2); ctx.fill();
+      } else if (skinShape === 'diamond') {
+        ctx.beginPath(); ctx.moveTo(0, -half); ctx.lineTo(half, 0); ctx.lineTo(0, half); ctx.lineTo(-half, 0); ctx.closePath(); ctx.fill();
+      } else if (skinShape === 'triangle') {
+        ctx.beginPath(); ctx.moveTo(0, -half); ctx.lineTo(half, half); ctx.lineTo(-half, half); ctx.closePath(); ctx.fill();
+      } else if (skinShape === 'star') {
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const angle = (i * Math.PI) / 5 - Math.PI / 2;
+          const r = i % 2 === 0 ? half : half * 0.45;
+          if (i === 0) ctx.moveTo(r * Math.cos(angle), r * Math.sin(angle));
+          else ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle));
+        }
+        ctx.closePath(); ctx.fill();
+      } else if (skinShape === 'hexagon') {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = (i * Math.PI) / 3 - Math.PI / 6;
+          if (i === 0) ctx.moveTo(half * Math.cos(angle), half * Math.sin(angle));
+          else ctx.lineTo(half * Math.cos(angle), half * Math.sin(angle));
+        }
+        ctx.closePath(); ctx.fill();
+      } else {
+        ctx.fillRect(-half, -half, PLAYER_SIZE, PLAYER_SIZE);
+      }
+      // Inner detail
+      ctx.fillStyle = pInner;
+      ctx.fillRect(-half + 4, -half + 4, PLAYER_SIZE - 8, PLAYER_SIZE - 8);
+      // Eye
       ctx.fillStyle = zc.bgColor;
       ctx.fillRect(2, -4, 7, 7);
-      ctx.fillStyle = 'hsla(0,0%,100%,0.8)';
+      ctx.fillStyle = pEye;
       ctx.fillRect(4, -2, 3, 3);
       ctx.shadowBlur = 0;
       ctx.restore();
@@ -710,7 +824,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     animFrameRef.current = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [level, isPlaying, currentLyric, uiState, onDeath, onComplete, onProgressChange, scaleFactor, effectiveDuration]);
+  }, [level, isPlaying, currentLyric, uiState, onDeath, onComplete, onProgressChange, scaleFactor, effectiveDuration, skinColor, skinGlowColor, skinInnerColor, skinEyeColor, skinShape]);
 
   const findSafeRespawnCamera = useCallback((cam: number) => {
     const obstacles = scaledObstacles.current;
@@ -744,6 +858,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     player.x = cameraXRef.current + 100;
     player.y = level.groundY - PLAYER_SIZE;
     player.vy = 0; player.rotation = 0; player.isGrounded = true; player.isDead = false;
+    player.mode = 'normal'; player.isImmortal = false; player.immortalTimer = 0;
     particlesRef.current = [];
     setUiState('playing');
   }, [level, onRestart, findSafeRespawnCamera, onResumeMusic]);
