@@ -93,7 +93,7 @@ const Index: React.FC = () => {
     newState.coins += coinsEarned;
 
     saveGameState(newState);
-    setGameState(newState);
+    saveGameState(newState);
     setCompletionInfo({ stars, coins: coinsEarned });
   }, [selectedLevel, gameState]);
 
