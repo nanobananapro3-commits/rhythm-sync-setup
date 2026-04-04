@@ -7,7 +7,9 @@ import LevelSelector from '@/components/LevelSelector';
 import SkinShop from '@/components/SkinShop';
 import { generateLevel, LevelData } from '@/lib/levelGenerator';
 import { LyricsResult, SyncedLyricLine } from '@/lib/lrclib';
-import { GameState, loadGameState, saveGameState, calculateStars, calculateCoinsEarned, getActiveSkin } from '@/lib/gameState';
+import { GameState, calculateStars, calculateCoinsEarned, getActiveSkin } from '@/lib/gameState';
+import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 
 type GameScreen = 'menu' | 'levels' | 'music' | 'playing' | 'shop';
 
