@@ -133,9 +133,17 @@ const Index: React.FC = () => {
       <div className="min-h-screen bg-background bg-grid flex flex-col items-center justify-center gap-8 p-4">
         <div className="text-center">
           <h1 className="font-display text-5xl sm:text-7xl font-black text-primary text-glow-primary tracking-wider">GEOMETRY</h1>
+          <h1 className="font-display text-5xl sm:text-7xl font-black text-accent tracking-wider -mt-2">MUSIC</h1>
           <h1 className="font-display text-5xl sm:text-7xl font-black text-secondary text-glow-secondary tracking-wider -mt-2">DASH</h1>
           <p className="font-body text-muted-foreground mt-4 text-lg">100 niveles · Tu MP3 · Letras sincronizadas</p>
           <p className="font-display text-accent mt-2">🪙 {gameState.coins} monedas</p>
+          <p className="font-body text-muted-foreground text-xs mt-1">{user?.email}</p>
+        </div>
+        <div className="flex flex-col gap-3 w-64">
+          <Button variant="neon" size="lg" onClick={() => setScreen('levels')}>▶ JUGAR</Button>
+          <Button variant="neon-outline" size="lg" onClick={() => handleSelectLevel(1)}>NIVEL 1</Button>
+          <Button variant="neon-secondary" size="lg" onClick={() => setScreen('shop')}>🛒 TIENDA</Button>
+          <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">Cerrar sesión</Button>
         </div>
         <div className="flex flex-col gap-3 w-64">
           <Button variant="neon" size="lg" onClick={() => setScreen('levels')}>▶ JUGAR</Button>
