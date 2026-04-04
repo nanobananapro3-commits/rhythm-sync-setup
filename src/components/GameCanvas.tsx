@@ -628,20 +628,54 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // Player
       const spx = player.x - cam;
+      const pColor = player.isDead ? 'hsl(0,100%,55%)' : (skinColor || zc.color);
+      const pGlow = player.isDead ? 'hsl(0,100%,55%)' : (skinGlowColor || zc.color);
+      const pInner = player.isDead ? 'hsl(0,100%,70%)' : (skinInnerColor || 'hsla(0,0%,100%,0.3)');
+      const pEye = skinEyeColor || 'hsla(0,0%,100%,0.8)';
+      const half = PLAYER_SIZE / 2;
       ctx.save();
-      ctx.translate(spx + PLAYER_SIZE / 2, player.y + PLAYER_SIZE / 2);
+      ctx.translate(spx + half, player.y + half);
       ctx.rotate((player.rotation * Math.PI) / 180);
-      ctx.shadowColor = player.isDead ? 'hsl(0,100%,55%)' : zc.color;
+      ctx.shadowColor = pGlow;
       ctx.shadowBlur = 18;
-      ctx.fillStyle = (player.isDead ? 'hsl(0,100%,55%)' : zc.color).replace(')', ', 0.2)').replace('hsl(', 'hsla(');
-      ctx.fillRect(-PLAYER_SIZE / 2 - 3, -PLAYER_SIZE / 2 - 3, PLAYER_SIZE + 6, PLAYER_SIZE + 6);
-      ctx.fillStyle = player.isDead ? 'hsl(0,100%,55%)' : zc.color;
-      ctx.fillRect(-PLAYER_SIZE / 2, -PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
-      ctx.fillStyle = player.isDead ? 'hsl(0,100%,70%)' : 'hsla(0,0%,100%,0.3)';
-      ctx.fillRect(-PLAYER_SIZE / 2 + 4, -PLAYER_SIZE / 2 + 4, PLAYER_SIZE - 8, PLAYER_SIZE - 8);
+      // Glow outline
+      ctx.fillStyle = pColor.replace(')', ', 0.2)').replace('hsl(', 'hsla(');
+      ctx.fillRect(-half - 3, -half - 3, PLAYER_SIZE + 6, PLAYER_SIZE + 6);
+      // Main shape
+      ctx.fillStyle = pColor;
+      if (skinShape === 'circle') {
+        ctx.beginPath(); ctx.arc(0, 0, half, 0, Math.PI * 2); ctx.fill();
+      } else if (skinShape === 'diamond') {
+        ctx.beginPath(); ctx.moveTo(0, -half); ctx.lineTo(half, 0); ctx.lineTo(0, half); ctx.lineTo(-half, 0); ctx.closePath(); ctx.fill();
+      } else if (skinShape === 'triangle') {
+        ctx.beginPath(); ctx.moveTo(0, -half); ctx.lineTo(half, half); ctx.lineTo(-half, half); ctx.closePath(); ctx.fill();
+      } else if (skinShape === 'star') {
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const angle = (i * Math.PI) / 5 - Math.PI / 2;
+          const r = i % 2 === 0 ? half : half * 0.45;
+          if (i === 0) ctx.moveTo(r * Math.cos(angle), r * Math.sin(angle));
+          else ctx.lineTo(r * Math.cos(angle), r * Math.sin(angle));
+        }
+        ctx.closePath(); ctx.fill();
+      } else if (skinShape === 'hexagon') {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = (i * Math.PI) / 3 - Math.PI / 6;
+          if (i === 0) ctx.moveTo(half * Math.cos(angle), half * Math.sin(angle));
+          else ctx.lineTo(half * Math.cos(angle), half * Math.sin(angle));
+        }
+        ctx.closePath(); ctx.fill();
+      } else {
+        ctx.fillRect(-half, -half, PLAYER_SIZE, PLAYER_SIZE);
+      }
+      // Inner detail
+      ctx.fillStyle = pInner;
+      ctx.fillRect(-half + 4, -half + 4, PLAYER_SIZE - 8, PLAYER_SIZE - 8);
+      // Eye
       ctx.fillStyle = zc.bgColor;
       ctx.fillRect(2, -4, 7, 7);
-      ctx.fillStyle = 'hsla(0,0%,100%,0.8)';
+      ctx.fillStyle = pEye;
       ctx.fillRect(4, -2, 3, 3);
       ctx.shadowBlur = 0;
       ctx.restore();
