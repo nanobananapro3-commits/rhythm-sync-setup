@@ -63,7 +63,7 @@ export const SKINS: SkinData[] = [
 
 const STORAGE_KEY = 'gd_game_state';
 
-function getDefaultState(): GameState {
+export function getDefaultGameState(): GameState {
   return {
     maxUnlocked: 1,
     coins: 0,
@@ -71,6 +71,10 @@ function getDefaultState(): GameState {
     ownedSkins: ['default'],
     activeSkin: 'default',
   };
+}
+
+function getDefaultState(): GameState {
+  return getDefaultGameState();
 }
 
 export function loadGameState(): GameState {
