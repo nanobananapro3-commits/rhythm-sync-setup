@@ -197,14 +197,17 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x: x + 35, type: 'spike', width: 30, height: 30 });
     return x + 65;
   },
-  // 17: Platform corridor
+  // 17: Platform hop (each platform has spikes below, must jump between them)
   (obs, x, _d, rand) => {
-    const n = 2 + Math.floor(rand() * 3);
+    const n = 2 + Math.floor(rand() * 2);
     let cx = x;
     for (let i = 0; i < n; i++) {
-      const w = 40 + rand() * 40;
-      obs.push({ x: cx, type: 'solid-platform', width: w, height: 12, y: -60 - rand() * 80 });
-      cx += w + 30 + rand() * 20;
+      const w = 50 + rand() * 30;
+      obs.push({ x: cx, type: 'solid-platform', width: w, height: 12, y: -55 });
+      // Spikes below each platform
+      obs.push({ x: cx + 10, type: 'spike', width: 30, height: 30 });
+      if (w > 60) obs.push({ x: cx + 45, type: 'spike', width: 30, height: 30 });
+      cx += w + 40;
     }
     return cx;
   },
