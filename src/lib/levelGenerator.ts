@@ -376,13 +376,18 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x: x + w - 40, type: 'ceiling-spike', width: 30, height: 30, y: -100 });
     return x + w;
   },
-  // 37: Platform corridor with ceiling
+  // 37: Two-floor corridor (floor + ceiling platforms with spikes between)
   (obs, x, _d, rand) => {
     const w = 120 + rand() * 60;
-    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -60 });
-    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -130 });
+    // Lower platform (reachable from ground)
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -55 });
+    // Upper platform (reachable from lower)
+    obs.push({ x: x + 20, type: 'solid-platform', width: w - 40, height: 12, y: -95 });
+    // Ground spikes (reason to jump to lower platform)
     obs.push({ x: x + 30, type: 'spike', width: 30, height: 30 });
     obs.push({ x: x + w - 60, type: 'spike', width: 30, height: 30 });
+    // Spike on top of upper platform (risk of going too high)
+    obs.push({ x: x + w / 2 - 15, type: 'spike', width: 30, height: 30, y: -95 - 30 });
     return x + w;
   },
   // 38: Mushroom placement (lvl 30+)
