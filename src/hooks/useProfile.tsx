@@ -8,7 +8,10 @@ export function useProfile(userId: string | undefined) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from('profiles')
       .select('*')
@@ -32,8 +35,8 @@ export function useProfile(userId: string | undefined) {
   }, [fetchProfile]);
 
   const saveProfile = useCallback(async (newState: GameState) => {
-    if (!userId) return;
     setGameState(newState);
+    if (!userId) return; // Guest mode: only update local state
     await supabase
       .from('profiles')
       .update({

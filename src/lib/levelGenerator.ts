@@ -86,14 +86,15 @@ function addSpikeRow(obs: Obstacle[], x: number, count: number, spacing: number)
 
 function addStaircase(obs: Obstacle[], x: number, steps: number, up: boolean, rand: () => number): number {
   for (let i = 0; i < steps; i++) {
-    const stepHeight = up ? 30 + i * 25 : 30 + (steps - 1 - i) * 25;
-    obs.push({ x: x + i * 50, type: 'block', width: 45, height: Math.min(stepHeight, 150) });
+    const stepY = up ? -60 - i * 40 : -60 - (steps - 1 - i) * 40;
+    const w = 45 + rand() * 25;
+    obs.push({ x: x + i * 65, type: 'solid-platform', width: w, height: 12, y: stepY });
   }
   if (rand() > 0.4) {
     const lastIdx = up ? steps - 1 : 0;
-    obs.push({ x: x + lastIdx * 50 + 7, type: 'spike', width: 30, height: 30, y: -30 });
+    obs.push({ x: x + lastIdx * 65 + 7, type: 'spike', width: 30, height: 30 });
   }
-  return x + steps * 50;
+  return x + steps * 65;
 }
 
 type PatternFn = (obs: Obstacle[], x: number, diff: number, rand: () => number) => number;
@@ -107,10 +108,11 @@ const PATTERNS: PatternFn[] = [
   (obs, x) => { obs.push({ x, type: 'triple-spike', width: 90, height: 30 }); return x + 90; },
   // 3: Tall spike
   (obs, x) => { obs.push({ x, type: 'tall-spike', width: 30, height: 60 }); return x + 30; },
-  // 4: Block
+  // 4: Floating platform
   (obs, x, _d, rand) => {
-    const w = 30 + rand() * 60, h = 30 + rand() * 40;
-    obs.push({ x, type: 'block', width: w, height: h }); return x + w;
+    const w = 50 + rand() * 60;
+    const h = -60 - rand() * 80;
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: h }); return x + w + 20;
   },
   // 5: Gap
   (obs, x, diff) => {
@@ -126,17 +128,17 @@ const PATTERNS: PatternFn[] = [
   (obs, x, diff, rand) => addStaircase(obs, x, 2 + Math.floor(rand() * (2 + diff * 3)), true, rand),
   // 8: Staircase down
   (obs, x, diff, rand) => addStaircase(obs, x, 2 + Math.floor(rand() * (2 + diff * 3)), false, rand),
-  // 9: Spike-block combo
+  // 9: Platform with spike on top
   (obs, x, _d, rand) => {
-    const bw = 40 + rand() * 40;
-    obs.push({ x, type: 'block', width: bw, height: 35 });
-    obs.push({ x: x + bw / 2 - 15, type: 'spike', width: 30, height: 30, y: -30 });
-    return x + bw;
+    const pw = 60 + rand() * 40;
+    obs.push({ x, type: 'solid-platform', width: pw, height: 12, y: -70 - rand() * 50 });
+    obs.push({ x: x + pw / 2 - 15, type: 'spike', width: 30, height: 30 });
+    return x + pw + 20;
   },
-  // 10: Pillar
-  (obs, x, diff, rand) => {
-    const h = 80 + rand() * (60 + diff * 80);
-    obs.push({ x, type: 'pillar', width: 25, height: h }); return x + 25;
+  // 10: Floating tall platform
+  (obs, x, _d, rand) => {
+    const w = 30 + rand() * 30;
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -90 - rand() * 60 }); return x + w + 20;
   },
   // 11: Saw blade
   (obs, x) => { obs.push({ x, type: 'saw', width: 35, height: 35 }); return x + 35; },
@@ -149,20 +151,20 @@ const PATTERNS: PatternFn[] = [
   },
   // 13: Moving block
   (obs, x) => { obs.push({ x, type: 'moving-block', width: 40, height: 40 }); return x + 40; },
-  // 14: Double gap
+  // 14: Double gap with floating platform
   (obs, x, diff) => {
     const gw = 40 + diff * 30;
     obs.push({ x, type: 'gap', width: gw, height: 200 });
-    obs.push({ x: x + gw + 30, type: 'block', width: 40, height: 30 });
-    obs.push({ x: x + gw + 80, type: 'gap', width: gw, height: 200 });
-    return x + gw * 2 + 80;
+    obs.push({ x: x + gw + 5, type: 'solid-platform', width: 50, height: 12, y: -60 });
+    obs.push({ x: x + gw + 65, type: 'gap', width: gw, height: 200 });
+    return x + gw * 2 + 65;
   },
-  // 15: Spike sandwich
+  // 15: Spike sandwich with platform
   (obs, x) => {
     obs.push({ x, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + 35, type: 'block', width: 40, height: 40 });
-    obs.push({ x: x + 80, type: 'spike', width: 30, height: 30 });
-    return x + 110;
+    obs.push({ x: x + 35, type: 'solid-platform', width: 50, height: 12, y: -65 });
+    obs.push({ x: x + 90, type: 'spike', width: 30, height: 30 });
+    return x + 120;
   },
   // 16: Spike wall
   (obs, x) => {
@@ -170,13 +172,14 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x: x + 35, type: 'spike', width: 30, height: 30 });
     return x + 65;
   },
-  // 17: Block corridor
+  // 17: Platform corridor
   (obs, x, _d, rand) => {
     const n = 2 + Math.floor(rand() * 3);
     let cx = x;
     for (let i = 0; i < n; i++) {
-      obs.push({ x: cx, type: 'block', width: 35, height: 30 + rand() * 50 });
-      cx += 70;
+      const w = 40 + rand() * 40;
+      obs.push({ x: cx, type: 'solid-platform', width: w, height: 12, y: -60 - rand() * 80 });
+      cx += w + 30 + rand() * 20;
     }
     return cx;
   },
@@ -211,12 +214,13 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x: x + 35 + w + 5, type: 'spike', width: 30, height: 30 });
     return x + 70 + w;
   },
-  // 22: Tower with saw on top
+  // 22: Floating platform with saw above
   (obs, x, _d, rand) => {
-    const h = 60 + rand() * 80;
-    obs.push({ x, type: 'block', width: 40, height: h });
-    obs.push({ x: x + 2, type: 'saw', width: 36, height: 36, y: -(h + 36) });
-    return x + 40;
+    const w = 50 + rand() * 40;
+    const py = -70 - rand() * 50;
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: py });
+    obs.push({ x: x + w / 2 - 18, type: 'saw', width: 36, height: 36, y: py - 40 });
+    return x + w + 20;
   },
   // 23: Zigzag spikes
   (obs, x) => {
@@ -241,32 +245,32 @@ const PATTERNS: PatternFn[] = [
     }
     return x + n * 60;
   },
-  // 26: Block + laser combo (hard)
+  // 26: Platform + laser combo (hard)
   (obs, x, _d, rand) => {
-    const bw = 50 + rand() * 30;
-    obs.push({ x, type: 'block', width: bw, height: 40 });
-    obs.push({ x: x - 10, type: 'laser', width: bw + 20, height: 8, y: -80 });
-    obs.push({ x: x + bw + 10, type: 'spike', width: 30, height: 30 });
-    return x + bw + 40;
+    const pw = 60 + rand() * 30;
+    obs.push({ x, type: 'solid-platform', width: pw, height: 12, y: -70 });
+    obs.push({ x: x - 10, type: 'laser', width: pw + 20, height: 8, y: -120 });
+    obs.push({ x: x + pw + 10, type: 'spike', width: 30, height: 30 });
+    return x + pw + 40;
   },
   // 27: Triple gap gauntlet (very hard)
   (obs, x, diff) => {
     const gw = 35 + diff * 20;
     for (let i = 0; i < 3; i++) {
-      obs.push({ x: x + i * (gw + 40), type: 'gap', width: gw, height: 200 });
-      if (i < 2) obs.push({ x: x + i * (gw + 40) + gw + 5, type: 'block', width: 30, height: 25 });
+      obs.push({ x: x + i * (gw + 55), type: 'gap', width: gw, height: 200 });
+      if (i < 2) obs.push({ x: x + i * (gw + 55) + gw + 5, type: 'solid-platform', width: 45, height: 12, y: -55 });
     }
-    return x + 3 * (gw + 40);
+    return x + 3 * (gw + 55);
   },
-  // 28: Pillar maze (very hard)
+  // 28: Platform maze (very hard)
   (obs, x, diff, rand) => {
     const n = 3 + Math.floor(rand() * 2);
     for (let i = 0; i < n; i++) {
-      const h = 60 + rand() * (80 + diff * 60);
-      obs.push({ x: x + i * 45, type: 'pillar', width: 20, height: h });
-      if (rand() > 0.5) obs.push({ x: x + i * 45 + 20, type: 'spike', width: 22, height: 22 });
+      const w = 35 + rand() * 25;
+      obs.push({ x: x + i * 60, type: 'solid-platform', width: w, height: 12, y: -60 - rand() * (60 + diff * 60) });
+      if (rand() > 0.5) obs.push({ x: x + i * 60 + 15, type: 'spike', width: 22, height: 22 });
     }
-    return x + n * 45;
+    return x + n * 60;
   },
   // 29: Nightmare combo (extreme)
   (obs, x, _d, rand) => {
