@@ -108,10 +108,11 @@ const PATTERNS: PatternFn[] = [
   (obs, x) => { obs.push({ x, type: 'triple-spike', width: 90, height: 30 }); return x + 90; },
   // 3: Tall spike
   (obs, x) => { obs.push({ x, type: 'tall-spike', width: 30, height: 60 }); return x + 30; },
-  // 4: Block
+  // 4: Floating platform
   (obs, x, _d, rand) => {
-    const w = 30 + rand() * 60, h = 30 + rand() * 40;
-    obs.push({ x, type: 'block', width: w, height: h }); return x + w;
+    const w = 50 + rand() * 60;
+    const h = -60 - rand() * 80;
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: h }); return x + w + 20;
   },
   // 5: Gap
   (obs, x, diff) => {
