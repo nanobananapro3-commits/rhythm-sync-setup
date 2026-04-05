@@ -109,6 +109,24 @@ const Auth: React.FC = () => {
         >
           {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
         </button>
+
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-muted-foreground/30" />
+          <span className="text-muted-foreground text-xs font-body">o</span>
+          <div className="flex-1 h-px bg-muted-foreground/30" />
+        </div>
+
+        <Button
+          variant="neon-secondary"
+          size="lg"
+          onClick={() => navigate('/')}
+          className="w-full"
+        >
+          🎮 Jugar sin cuenta
+        </Button>
+        <p className="text-xs text-destructive font-body text-center animate-pulse">
+          ⚠️ Tu progreso no se guardará si sales
+        </p>
       </div>
     </div>
   );
