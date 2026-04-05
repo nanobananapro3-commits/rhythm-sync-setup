@@ -395,28 +395,33 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x, type: 'mushroom', width: 24, height: 24, y: -40 });
     return x + 30;
   },
-  // 39: Long floating platform with spikes below
+  // 39: Long platform bridge over spike field
   (obs, x, _d, rand) => {
-    const w = 100 + rand() * 80;
-    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -80 });
-    const spikeCount = 2 + Math.floor(rand() * 3);
+    const w = 110 + rand() * 70;
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -55 });
+    // Many ground spikes below (reason to be on the platform)
+    const spikeCount = Math.floor(w / 35);
     for (let i = 0; i < spikeCount; i++) {
-      obs.push({ x: x + 15 + i * 35, type: 'spike', width: 30, height: 30 });
+      obs.push({ x: x + 10 + i * 35, type: 'spike', width: 30, height: 30 });
     }
-    return x + w + 20;
+    return x + w + 15;
   },
-  // 40: Branching path (easy top / hard bottom)
+  // 40: Branching path — easy top / hard bottom
   (obs, x, _d, rand) => {
-    const len = 200 + rand() * 100;
-    // Top path: floating platforms (easier)
-    obs.push({ x, type: 'solid-platform', width: 60, height: 12, y: -100 });
-    obs.push({ x: x + 80, type: 'solid-platform', width: 80, height: 12, y: -110 });
-    obs.push({ x: x + 180, type: 'solid-platform', width: 60, height: 12, y: -95 });
-    // Bottom path: ground with spikes (harder)
+    const len = 250 + rand() * 80;
+    // Entry step platform (reachable with one jump)
+    obs.push({ x, type: 'solid-platform', width: 55, height: 12, y: -55 });
+    // Top path: connected platforms (safer, fewer spikes)
+    obs.push({ x: x + 60, type: 'solid-platform', width: 80, height: 12, y: -55 });
+    obs.push({ x: x + 150, type: 'solid-platform', width: 70, height: 12, y: -55 });
+    // One spike on top path (small risk)
+    obs.push({ x: x + 100, type: 'spike', width: 25, height: 25, y: -55 - 25 });
+    // Bottom path: ground with lots of spikes (harder)
     obs.push({ x: x + 30, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + 90, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + 130, type: 'tall-spike', width: 30, height: 55 });
-    obs.push({ x: x + 190, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 70, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 110, type: 'tall-spike', width: 30, height: 55 });
+    obs.push({ x: x + 155, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 195, type: 'spike', width: 30, height: 30 });
     return x + len;
   },
   // 41: Descending floating staircase
