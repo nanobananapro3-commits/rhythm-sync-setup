@@ -257,10 +257,10 @@ const PATTERNS: PatternFn[] = [
   (obs, x, diff) => {
     const gw = 35 + diff * 20;
     for (let i = 0; i < 3; i++) {
-      obs.push({ x: x + i * (gw + 40), type: 'gap', width: gw, height: 200 });
-      if (i < 2) obs.push({ x: x + i * (gw + 40) + gw + 5, type: 'block', width: 30, height: 25 });
+      obs.push({ x: x + i * (gw + 55), type: 'gap', width: gw, height: 200 });
+      if (i < 2) obs.push({ x: x + i * (gw + 55) + gw + 5, type: 'solid-platform', width: 45, height: 12, y: -55 });
     }
-    return x + 3 * (gw + 40);
+    return x + 3 * (gw + 55);
   },
   // 28: Pillar maze (very hard)
   (obs, x, diff, rand) => {
