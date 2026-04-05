@@ -135,10 +135,10 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x: x + pw / 2 - 15, type: 'spike', width: 30, height: 30 });
     return x + pw + 20;
   },
-  // 10: Pillar
-  (obs, x, diff, rand) => {
-    const h = 80 + rand() * (60 + diff * 80);
-    obs.push({ x, type: 'pillar', width: 25, height: h }); return x + 25;
+  // 10: Floating tall platform
+  (obs, x, _d, rand) => {
+    const w = 30 + rand() * 30;
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -90 - rand() * 60 }); return x + w + 20;
   },
   // 11: Saw blade
   (obs, x) => { obs.push({ x, type: 'saw', width: 35, height: 35 }); return x + 35; },
