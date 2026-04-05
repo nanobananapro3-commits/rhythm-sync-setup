@@ -86,14 +86,15 @@ function addSpikeRow(obs: Obstacle[], x: number, count: number, spacing: number)
 
 function addStaircase(obs: Obstacle[], x: number, steps: number, up: boolean, rand: () => number): number {
   for (let i = 0; i < steps; i++) {
-    const stepHeight = up ? 30 + i * 25 : 30 + (steps - 1 - i) * 25;
-    obs.push({ x: x + i * 50, type: 'block', width: 45, height: Math.min(stepHeight, 150) });
+    const stepY = up ? -60 - i * 40 : -60 - (steps - 1 - i) * 40;
+    const w = 45 + rand() * 25;
+    obs.push({ x: x + i * 65, type: 'solid-platform', width: w, height: 12, y: stepY });
   }
   if (rand() > 0.4) {
     const lastIdx = up ? steps - 1 : 0;
-    obs.push({ x: x + lastIdx * 50 + 7, type: 'spike', width: 30, height: 30, y: -30 });
+    obs.push({ x: x + lastIdx * 65 + 7, type: 'spike', width: 30, height: 30 });
   }
-  return x + steps * 50;
+  return x + steps * 65;
 }
 
 type PatternFn = (obs: Obstacle[], x: number, diff: number, rand: () => number) => number;
