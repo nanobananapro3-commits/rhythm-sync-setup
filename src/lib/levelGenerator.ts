@@ -214,12 +214,13 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x: x + 35 + w + 5, type: 'spike', width: 30, height: 30 });
     return x + 70 + w;
   },
-  // 22: Tower with saw on top
+  // 22: Floating platform with saw above
   (obs, x, _d, rand) => {
-    const h = 60 + rand() * 80;
-    obs.push({ x, type: 'block', width: 40, height: h });
-    obs.push({ x: x + 2, type: 'saw', width: 36, height: 36, y: -(h + 36) });
-    return x + 40;
+    const w = 50 + rand() * 40;
+    const py = -70 - rand() * 50;
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: py });
+    obs.push({ x: x + w / 2 - 18, type: 'saw', width: 36, height: 36, y: py - 40 });
+    return x + w + 20;
   },
   // 23: Zigzag spikes
   (obs, x) => {
