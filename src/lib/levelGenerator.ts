@@ -282,33 +282,49 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x: x + pw + 10, type: 'spike', width: 30, height: 30 });
     return x + pw + 40;
   },
-  // 27: Triple gap gauntlet (very hard)
+  // 27: Gap bridge (platforms over gaps)
   (obs, x, diff) => {
-    const gw = 35 + diff * 20;
+    const gw = 40 + diff * 20;
     for (let i = 0; i < 3; i++) {
-      obs.push({ x: x + i * (gw + 55), type: 'gap', width: gw, height: 200 });
-      if (i < 2) obs.push({ x: x + i * (gw + 55) + gw + 5, type: 'solid-platform', width: 45, height: 12, y: -55 });
+      const gx = x + i * (gw + 60);
+      obs.push({ x: gx, type: 'gap', width: gw, height: 200 });
+      // Platform over each gap to land on
+      obs.push({ x: gx + 5, type: 'solid-platform', width: gw - 10, height: 12, y: -55 });
     }
-    return x + 3 * (gw + 55);
+    return x + 3 * (gw + 60);
   },
-  // 28: Platform maze (very hard)
+  // 28: Two-floor section (upper floor harder, lower floor easier or vice versa)
   (obs, x, diff, rand) => {
-    const n = 3 + Math.floor(rand() * 2);
-    for (let i = 0; i < n; i++) {
-      const w = 35 + rand() * 25;
-      obs.push({ x: x + i * 60, type: 'solid-platform', width: w, height: 12, y: -60 - rand() * (60 + diff * 60) });
-      if (rand() > 0.5) obs.push({ x: x + i * 60 + 15, type: 'spike', width: 22, height: 22 });
+    const len = 180 + rand() * 60;
+    // Lower floor: a few spikes
+    obs.push({ x: x + 30, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 100, type: 'spike', width: 30, height: 30 });
+    // Staircase up: step platform to reach upper floor
+    obs.push({ x, type: 'solid-platform', width: 55, height: 12, y: -55 });
+    // Upper floor: long platform with danger
+    obs.push({ x: x + 60, type: 'solid-platform', width: len - 80, height: 12, y: -90 });
+    // Spikes ON the upper floor (ceiling spikes hanging above)
+    if (diff > 0.3) {
+      obs.push({ x: x + 90, type: 'ceiling-spike', width: 25, height: 25, y: -160 });
+      obs.push({ x: x + 140, type: 'ceiling-spike', width: 25, height: 25, y: -160 });
     }
-    return x + n * 60;
+    // More ground spikes if hard (incentive to go up)
+    if (diff > 0.5) {
+      obs.push({ x: x + 60, type: 'tall-spike', width: 30, height: 55 });
+      obs.push({ x: x + 140, type: 'spike', width: 30, height: 30 });
+    }
+    return x + len;
   },
   // 29: Nightmare combo (extreme)
   (obs, x, _d, rand) => {
     obs.push({ x, type: 'saw', width: 35, height: 35 });
     obs.push({ x: x + 40, type: 'tall-spike', width: 30, height: 60 });
     obs.push({ x: x + 75, type: 'gap', width: 50, height: 200 });
+    // Rescue platform over the gap
+    obs.push({ x: x + 80, type: 'solid-platform', width: 40, height: 12, y: -55 });
     obs.push({ x: x + 130, type: 'saw', width: 35, height: 35 });
     obs.push({ x: x + 170, type: 'triple-spike', width: 90, height: 30 });
-    if (rand() > 0.3) obs.push({ x: x + 80, type: 'laser', width: 80, height: 8, y: -70 });
+    if (rand() > 0.3) obs.push({ x: x + 170, type: 'solid-platform', width: 90, height: 12, y: -55 });
     return x + 260;
   },
   // 30: Floating platform (short)
