@@ -368,12 +368,17 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x, type: 'hammer', width: 40, height: 60 });
     return x + 60;
   },
-  // 36: Ceiling spike with platform
+  // 36: Platform with ceiling spikes (tight squeeze)
   (obs, x, _d, rand) => {
     const w = 80 + rand() * 40;
-    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -100 });
-    obs.push({ x: x + 10, type: 'ceiling-spike', width: 30, height: 30, y: -100 });
-    obs.push({ x: x + w - 40, type: 'ceiling-spike', width: 30, height: 30, y: -100 });
+    // Platform reachable at y=-55
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -55 });
+    // Ceiling spikes above the platform (don't jump while on it!)
+    obs.push({ x: x + 10, type: 'ceiling-spike', width: 30, height: 30, y: -110 });
+    obs.push({ x: x + w - 40, type: 'ceiling-spike', width: 30, height: 30, y: -110 });
+    // Ground spikes below (reason to go up)
+    obs.push({ x: x + 20, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + w - 50, type: 'spike', width: 30, height: 30 });
     return x + w;
   },
   // 37: Two-floor corridor (floor + ceiling platforms with spikes between)
