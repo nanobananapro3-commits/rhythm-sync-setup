@@ -114,11 +114,16 @@ const PATTERNS: PatternFn[] = [
   (obs, x) => { obs.push({ x, type: 'triple-spike', width: 90, height: 30 }); return x + 90; },
   // 3: Tall spike
   (obs, x) => { obs.push({ x, type: 'tall-spike', width: 30, height: 60 }); return x + 30; },
-  // 4: Floating platform
+  // 4: Platform over spikes (escape route up)
   (obs, x, _d, rand) => {
-    const w = 50 + rand() * 60;
-    const h = -60 - rand() * 80;
-    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: h }); return x + w + 20;
+    const w = 60 + rand() * 50;
+    // Ground spikes that you avoid by jumping onto the platform
+    obs.push({ x: x + 5, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 40, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 75, type: 'spike', width: 30, height: 30 });
+    // Platform reachable with one jump (y=-55)
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -55 });
+    return x + w + 20;
   },
   // 5: Gap
   (obs, x, diff) => {
