@@ -35,8 +35,8 @@ export function useProfile(userId: string | undefined) {
   }, [fetchProfile]);
 
   const saveProfile = useCallback(async (newState: GameState) => {
-    if (!userId) return;
     setGameState(newState);
+    if (!userId) return; // Guest mode: only update local state
     await supabase
       .from('profiles')
       .update({
