@@ -656,6 +656,82 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
             ctx.beginPath(); ctx.arc(sx + obs.width / 2, orbY + obs.height / 2, obs.width / 2 - 3, 0, Math.PI * 2); ctx.stroke();
             break;
           }
+          case 'ceiling-spike': {
+            const csY = obs.y !== undefined ? level.groundY + obs.y : 0;
+            ctx.fillStyle = 'hsla(0, 100%, 55%, 0.85)';
+            ctx.strokeStyle = 'hsl(0, 100%, 55%)';
+            // Draw upside-down spike
+            ctx.beginPath();
+            ctx.moveTo(sx, csY); ctx.lineTo(sx + obs.width / 2, csY + obs.height); ctx.lineTo(sx + obs.width, csY);
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+            break;
+          }
+          case 'mushroom': {
+            const mY = obs.y !== undefined ? level.groundY + obs.y : level.groundY - obs.height;
+            const pulse = 0.7 + Math.sin(fc * 0.08) * 0.3;
+            ctx.fillStyle = `hsla(120, 100%, 50%, ${pulse})`;
+            ctx.shadowColor = 'hsl(120, 100%, 50%)'; ctx.shadowBlur = 15;
+            // Stem
+            ctx.fillRect(sx + obs.width / 2 - 3, mY + obs.height / 2, 6, obs.height / 2);
+            // Cap
+            ctx.beginPath(); ctx.arc(sx + obs.width / 2, mY + obs.height / 2, obs.width / 2, Math.PI, 0); ctx.fill();
+            // Dots
+            ctx.fillStyle = 'hsla(0, 0%, 100%, 0.8)';
+            ctx.beginPath(); ctx.arc(sx + obs.width / 2 - 4, mY + obs.height / 2 - 3, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sx + obs.width / 2 + 4, mY + obs.height / 2 - 5, 2, 0, Math.PI * 2); ctx.fill();
+            break;
+          }
+          case 'pulse-laser': {
+            const plY = level.groundY + (obs.y || -60);
+            const plAlpha = Math.abs(Math.sin(fc * 0.05)) > 0.5 ? 0.8 : 0.1;
+            ctx.fillStyle = `hsla(0, 100%, 55%, ${plAlpha})`;
+            ctx.shadowColor = 'hsl(0, 100%, 55%)'; ctx.shadowBlur = plAlpha * 15;
+            ctx.fillRect(sx, plY, obs.width, obs.height);
+            break;
+          }
+          case 'hammer': {
+            const hmY = level.groundY - obs.height;
+            const swing = Math.sin(fc * 0.06) * 0.4;
+            ctx.save(); ctx.translate(sx + obs.width / 2, hmY); ctx.rotate(swing);
+            ctx.fillStyle = accentCol.replace(')', ', 0.9)').replace('hsl(', 'hsla(');
+            ctx.fillRect(-3, 0, 6, obs.height * 0.7);
+            ctx.fillStyle = obsColor;
+            ctx.fillRect(-obs.width / 2, -10, obs.width, 20);
+            ctx.restore();
+            break;
+          }
+          case 'vertical-saw': {
+            const vsY = obs.y !== undefined ? level.groundY + obs.y + obs.height / 2 : level.groundY - obs.height / 2;
+            const bounce = Math.sin(fc * 0.04) * 40;
+            ctx.fillStyle = accentCol.replace(')', ', 0.9)').replace('hsl(', 'hsla(');
+            ctx.shadowColor = accentCol; ctx.shadowBlur = 10;
+            drawSaw(sx + obs.width / 2, vsY + bounce, obs.width / 2, sawRotationRef.current);
+            break;
+          }
+          case 'vanishing-block': {
+            const vbY = level.groundY - obs.height;
+            const vbAlpha = 0.3 + Math.abs(Math.sin(fc * 0.03)) * 0.6;
+            ctx.fillStyle = obsColor.replace(')', `, ${vbAlpha})`).replace('hsl(', 'hsla(');
+            ctx.fillRect(sx, vbY, obs.width, obs.height);
+            ctx.strokeStyle = obsColor.replace(')', `, ${vbAlpha * 0.7})`).replace('hsl(', 'hsla(');
+            ctx.setLineDash([4, 4]); ctx.strokeRect(sx, vbY, obs.width, obs.height); ctx.setLineDash([]);
+            break;
+          }
+          case 'mode-ball': case 'mode-airplane': case 'mode-normal': {
+            const portalY = level.groundY - 60;
+            const portalPulse = 0.5 + Math.sin(fc * 0.1) * 0.3;
+            const portalColor = obs.type === 'mode-ball' ? 'hsl(280, 100%, 60%)' : obs.type === 'mode-airplane' ? 'hsl(180, 100%, 50%)' : 'hsl(120, 100%, 50%)';
+            ctx.fillStyle = portalColor.replace(')', `, ${portalPulse})`).replace('hsl(', 'hsla(');
+            ctx.shadowColor = portalColor; ctx.shadowBlur = 20;
+            ctx.beginPath(); ctx.arc(sx + 15, portalY + 30, 18, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = 'hsla(0,0%,100%,0.6)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(sx + 15, portalY + 30, 18, 0, Math.PI * 2); ctx.stroke();
+            const label = obs.type === 'mode-ball' ? '⚽' : obs.type === 'mode-airplane' ? '✈' : '■';
+            ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillStyle = 'white';
+            ctx.fillText(label, sx + 15, portalY + 35);
+            break;
+          }
           default:
             ctx.fillRect(sx, level.groundY - obs.height, obs.width, obs.height);
             break;
