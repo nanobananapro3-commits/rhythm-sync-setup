@@ -84,17 +84,23 @@ function addSpikeRow(obs: Obstacle[], x: number, count: number, spacing: number)
   return x + count * spacing;
 }
 
+// Staircase: platforms go up/down, each step reachable from the previous one
+// First step at y=-55 (one jump from ground), each next step +35 higher
 function addStaircase(obs: Obstacle[], x: number, steps: number, up: boolean, rand: () => number): number {
+  const baseY = -55; // reachable with one jump
+  const stepGap = 35; // each step 35px higher, reachable from previous
   for (let i = 0; i < steps; i++) {
-    const stepY = up ? -60 - i * 40 : -60 - (steps - 1 - i) * 40;
-    const w = 45 + rand() * 25;
-    obs.push({ x: x + i * 65, type: 'solid-platform', width: w, height: 12, y: stepY });
+    const si = up ? i : (steps - 1 - i);
+    const stepY = baseY - si * stepGap;
+    const w = 55 + rand() * 25;
+    obs.push({ x: x + i * 70, type: 'solid-platform', width: w, height: 12, y: stepY });
   }
-  if (rand() > 0.4) {
-    const lastIdx = up ? steps - 1 : 0;
-    obs.push({ x: x + lastIdx * 65 + 7, type: 'spike', width: 30, height: 30 });
+  // Ground spikes below the staircase (reason to climb)
+  const spikeCount = Math.max(1, steps - 1);
+  for (let i = 0; i < spikeCount; i++) {
+    obs.push({ x: x + 20 + i * 70, type: 'spike', width: 30, height: 30 });
   }
-  return x + steps * 65;
+  return x + steps * 70;
 }
 
 type PatternFn = (obs: Obstacle[], x: number, diff: number, rand: () => number) => number;
