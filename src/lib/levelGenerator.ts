@@ -172,13 +172,14 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x: x + 35, type: 'spike', width: 30, height: 30 });
     return x + 65;
   },
-  // 17: Block corridor
+  // 17: Platform corridor
   (obs, x, _d, rand) => {
     const n = 2 + Math.floor(rand() * 3);
     let cx = x;
     for (let i = 0; i < n; i++) {
-      obs.push({ x: cx, type: 'block', width: 35, height: 30 + rand() * 50 });
-      cx += 70;
+      const w = 40 + rand() * 40;
+      obs.push({ x: cx, type: 'solid-platform', width: w, height: 12, y: -60 - rand() * 80 });
+      cx += w + 30 + rand() * 20;
     }
     return cx;
   },
