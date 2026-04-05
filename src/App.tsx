@@ -11,7 +11,7 @@ import NotFound from "./pages/NotFound.tsx";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   if (loading) {
     return (
       <div className="min-h-screen bg-background bg-grid flex items-center justify-center">
@@ -19,7 +19,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  if (!user) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 }
 

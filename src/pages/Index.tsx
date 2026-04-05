@@ -143,13 +143,18 @@ const Index: React.FC = () => {
           <Button variant="neon" size="lg" onClick={() => setScreen('levels')}>▶ JUGAR</Button>
           <Button variant="neon-outline" size="lg" onClick={() => handleSelectLevel(1)}>NIVEL 1</Button>
           <Button variant="neon-secondary" size="lg" onClick={() => setScreen('shop')}>🛒 TIENDA</Button>
-          <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">Cerrar sesión</Button>
+          {user && <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">Cerrar sesión</Button>}
+          {!user && (
+            <Button variant="ghost" size="sm" onClick={() => window.location.href = '/auth'} className="text-accent">
+              Registrarse / Iniciar sesión
+            </Button>
+          )}
         </div>
-        <div className="flex flex-col gap-3 w-64">
-          <Button variant="neon" size="lg" onClick={() => setScreen('levels')}>▶ JUGAR</Button>
-          <Button variant="neon-outline" size="lg" onClick={() => handleSelectLevel(1)}>NIVEL 1</Button>
-          <Button variant="neon-secondary" size="lg" onClick={() => setScreen('shop')}>🛒 TIENDA</Button>
-        </div>
+        {!user && (
+          <p className="text-xs text-destructive font-body animate-pulse max-w-xs text-center">
+            ⚠️ Tu progreso no se guardará si sales. ¡Regístrate para guardar!
+          </p>
+        )}
         <div className="text-center text-muted-foreground text-sm font-body mt-8 max-w-md">
           <p>Espacio / Click / Toque para saltar</p>
           <p className="mt-1">Sube tu MP3 (2-5 min) y juega al ritmo 🎵</p>
