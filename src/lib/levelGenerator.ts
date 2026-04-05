@@ -327,12 +327,12 @@ const PATTERNS: PatternFn[] = [
     if (rand() > 0.3) obs.push({ x: x + 170, type: 'solid-platform', width: 90, height: 12, y: -55 });
     return x + 260;
   },
-  // 30: Floating platform (short)
+  // 30: Platform over double spike (simple escape)
   (obs, x, _d, rand) => {
-    const w = 50 + rand() * 40;
-    const h = -60 - rand() * 80;
-    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: h });
-    return x + w + 20;
+    const w = 60 + rand() * 40;
+    obs.push({ x: x + 5, type: 'double-spike', width: 60, height: 30 });
+    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -55 });
+    return x + w + 15;
   },
   // 31: Floating platform staircase (ascending)
   (obs, x, _d, rand) => {
