@@ -273,11 +273,12 @@ const PATTERNS: PatternFn[] = [
     }
     return x + n * 60;
   },
-  // 26: Platform + laser combo (hard)
+  // 26: Platform + laser below (stay on platform to dodge laser)
   (obs, x, _d, rand) => {
-    const pw = 60 + rand() * 30;
-    obs.push({ x, type: 'solid-platform', width: pw, height: 12, y: -70 });
-    obs.push({ x: x - 10, type: 'laser', width: pw + 20, height: 8, y: -120 });
+    const pw = 70 + rand() * 40;
+    obs.push({ x, type: 'solid-platform', width: pw, height: 12, y: -55 });
+    // Laser at ground level - you die if you don't jump onto the platform
+    obs.push({ x: x - 5, type: 'laser', width: pw + 10, height: 8, y: -25 });
     obs.push({ x: x + pw + 10, type: 'spike', width: 30, height: 30 });
     return x + pw + 40;
   },
