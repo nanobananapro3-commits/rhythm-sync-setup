@@ -139,17 +139,26 @@ const PATTERNS: PatternFn[] = [
   (obs, x, diff, rand) => addStaircase(obs, x, 2 + Math.floor(rand() * (2 + diff * 3)), true, rand),
   // 8: Staircase down
   (obs, x, diff, rand) => addStaircase(obs, x, 2 + Math.floor(rand() * (2 + diff * 3)), false, rand),
-  // 9: Platform with spike on top
+  // 9: Platform bridge over spike pit
   (obs, x, _d, rand) => {
-    const pw = 60 + rand() * 40;
-    obs.push({ x, type: 'solid-platform', width: pw, height: 12, y: -70 - rand() * 50 });
-    obs.push({ x: x + pw / 2 - 15, type: 'spike', width: 30, height: 30 });
-    return x + pw + 20;
+    const pw = 70 + rand() * 40;
+    // Spike row on ground
+    for (let i = 0; i < 3; i++) {
+      obs.push({ x: x + 10 + i * 32, type: 'spike', width: 30, height: 30 });
+    }
+    // Platform above to jump onto and cross safely
+    obs.push({ x, type: 'solid-platform', width: pw, height: 12, y: -55 });
+    return x + pw + 15;
   },
-  // 10: Floating tall platform
+  // 10: Two-step platform (ground spike → step 1 → step 2)
   (obs, x, _d, rand) => {
-    const w = 30 + rand() * 30;
-    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -90 - rand() * 60 }); return x + w + 20;
+    const w1 = 50 + rand() * 20;
+    const w2 = 45 + rand() * 20;
+    obs.push({ x: x + 10, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 45, type: 'spike', width: 30, height: 30 });
+    obs.push({ x, type: 'solid-platform', width: w1, height: 12, y: -55 });
+    obs.push({ x: x + w1 + 15, type: 'solid-platform', width: w2, height: 12, y: -90 });
+    return x + w1 + w2 + 35;
   },
   // 11: Saw blade
   (obs, x) => { obs.push({ x, type: 'saw', width: 35, height: 35 }); return x + 35; },
