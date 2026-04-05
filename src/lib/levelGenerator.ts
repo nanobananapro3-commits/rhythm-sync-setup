@@ -128,12 +128,12 @@ const PATTERNS: PatternFn[] = [
   (obs, x, diff, rand) => addStaircase(obs, x, 2 + Math.floor(rand() * (2 + diff * 3)), true, rand),
   // 8: Staircase down
   (obs, x, diff, rand) => addStaircase(obs, x, 2 + Math.floor(rand() * (2 + diff * 3)), false, rand),
-  // 9: Spike-block combo
+  // 9: Platform with spike on top
   (obs, x, _d, rand) => {
-    const bw = 40 + rand() * 40;
-    obs.push({ x, type: 'block', width: bw, height: 35 });
-    obs.push({ x: x + bw / 2 - 15, type: 'spike', width: 30, height: 30, y: -30 });
-    return x + bw;
+    const pw = 60 + rand() * 40;
+    obs.push({ x, type: 'solid-platform', width: pw, height: 12, y: -70 - rand() * 50 });
+    obs.push({ x: x + pw / 2 - 15, type: 'spike', width: 30, height: 30 });
+    return x + pw + 20;
   },
   // 10: Pillar
   (obs, x, diff, rand) => {
