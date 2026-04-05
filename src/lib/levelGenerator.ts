@@ -171,20 +171,25 @@ const PATTERNS: PatternFn[] = [
   },
   // 13: Moving block
   (obs, x) => { obs.push({ x, type: 'moving-block', width: 40, height: 40 }); return x + 40; },
-  // 14: Double gap with floating platform
+  // 14: Gap with rescue platform
   (obs, x, diff) => {
-    const gw = 40 + diff * 30;
+    const gw = 50 + diff * 30;
     obs.push({ x, type: 'gap', width: gw, height: 200 });
-    obs.push({ x: x + gw + 5, type: 'solid-platform', width: 50, height: 12, y: -60 });
-    obs.push({ x: x + gw + 65, type: 'gap', width: gw, height: 200 });
-    return x + gw * 2 + 65;
+    // Platform over the gap so you can land safely
+    obs.push({ x: x + 5, type: 'solid-platform', width: gw - 10, height: 12, y: -55 });
+    return x + gw + 10;
   },
-  // 15: Spike sandwich with platform
-  (obs, x) => {
-    obs.push({ x, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + 35, type: 'solid-platform', width: 50, height: 12, y: -65 });
-    obs.push({ x: x + 90, type: 'spike', width: 30, height: 30 });
-    return x + 120;
+  // 15: Spike field with overhead escape platform
+  (obs, x, _d, rand) => {
+    const len = 120 + rand() * 60;
+    // Many spikes on ground
+    const count = Math.floor(len / 35);
+    for (let i = 0; i < count; i++) {
+      obs.push({ x: x + i * 35, type: 'spike', width: 30, height: 30 });
+    }
+    // Long platform above to cross safely
+    obs.push({ x: x - 10, type: 'solid-platform', width: len + 20, height: 12, y: -55 });
+    return x + len + 15;
   },
   // 16: Spike wall
   (obs, x) => {
