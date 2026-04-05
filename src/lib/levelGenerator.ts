@@ -159,12 +159,12 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x: x + gw + 65, type: 'gap', width: gw, height: 200 });
     return x + gw * 2 + 65;
   },
-  // 15: Spike sandwich
+  // 15: Spike sandwich with platform
   (obs, x) => {
     obs.push({ x, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + 35, type: 'block', width: 40, height: 40 });
-    obs.push({ x: x + 80, type: 'spike', width: 30, height: 30 });
-    return x + 110;
+    obs.push({ x: x + 35, type: 'solid-platform', width: 50, height: 12, y: -65 });
+    obs.push({ x: x + 90, type: 'spike', width: 30, height: 30 });
+    return x + 120;
   },
   // 16: Spike wall
   (obs, x) => {
