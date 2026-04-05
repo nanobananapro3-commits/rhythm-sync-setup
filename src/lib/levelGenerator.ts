@@ -262,15 +262,15 @@ const PATTERNS: PatternFn[] = [
     }
     return x + 3 * (gw + 55);
   },
-  // 28: Pillar maze (very hard)
+  // 28: Platform maze (very hard)
   (obs, x, diff, rand) => {
     const n = 3 + Math.floor(rand() * 2);
     for (let i = 0; i < n; i++) {
-      const h = 60 + rand() * (80 + diff * 60);
-      obs.push({ x: x + i * 45, type: 'pillar', width: 20, height: h });
-      if (rand() > 0.5) obs.push({ x: x + i * 45 + 20, type: 'spike', width: 22, height: 22 });
+      const w = 35 + rand() * 25;
+      obs.push({ x: x + i * 60, type: 'solid-platform', width: w, height: 12, y: -60 - rand() * (60 + diff * 60) });
+      if (rand() > 0.5) obs.push({ x: x + i * 60 + 15, type: 'spike', width: 22, height: 22 });
     }
-    return x + n * 45;
+    return x + n * 60;
   },
   // 29: Nightmare combo (extreme)
   (obs, x, _d, rand) => {
