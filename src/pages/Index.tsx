@@ -137,7 +137,7 @@ const Index: React.FC = () => {
           <h1 className="font-display text-5xl sm:text-7xl font-black text-secondary text-glow-secondary tracking-wider -mt-2">DASH</h1>
           <p className="font-body text-muted-foreground mt-4 text-lg">100 niveles · Tu MP3 · Letras sincronizadas</p>
           <p className="font-display text-accent mt-2">🪙 {gameState.coins} monedas</p>
-          <p className="font-body text-muted-foreground text-xs mt-1">{user?.email}</p>
+          <p className="font-body text-muted-foreground text-xs mt-1">{user ? user.email : '👤 Modo invitado'}</p>
         </div>
         <div className="flex flex-col gap-3 w-64">
           <Button variant="neon" size="lg" onClick={() => setScreen('levels')}>▶ JUGAR</Button>
