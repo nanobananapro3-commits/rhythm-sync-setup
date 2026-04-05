@@ -607,14 +607,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
             drawSaw(sx + obs.width / 2, sawY, obs.width / 2, sawRotationRef.current);
             break;
           }
-          case 'platform': {
+          case 'platform':
+          case 'solid-platform': {
             const platY = level.groundY + (obs.y || -80);
-            ctx.fillStyle = obsColor.replace(')', ', 0.6)').replace('hsl(', 'hsla(');
+            const platformGrad = ctx.createLinearGradient(sx, platY, sx, platY + obs.height);
+            platformGrad.addColorStop(0, obsColor.replace(')', ', 0.95)').replace('hsl(', 'hsla('));
+            platformGrad.addColorStop(1, accentCol.replace(')', ', 0.65)').replace('hsl(', 'hsla('));
+            ctx.fillStyle = platformGrad;
             ctx.fillRect(sx, platY, obs.width, obs.height);
+            ctx.strokeStyle = obsColor;
             ctx.strokeRect(sx, platY, obs.width, obs.height);
-            ctx.fillStyle = zc.pulseColor;
-            ctx.beginPath(); ctx.arc(sx + 3, platY + obs.height / 2, 2, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(sx + obs.width - 3, platY + obs.height / 2, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = zc.pulseColor.replace(')', ', 0.9)').replace('hsl(', 'hsla(');
+            ctx.fillRect(sx + 4, platY + 2, Math.max(obs.width - 8, 0), 2);
+            ctx.fillStyle = zc.bgColor.replace(')', ', 0.35)').replace('hsl(', 'hsla(');
+            ctx.fillRect(sx + 6, platY + obs.height - 3, Math.max(obs.width - 12, 0), 1);
             break;
           }
           case 'gap':
