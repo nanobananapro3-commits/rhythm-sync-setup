@@ -245,13 +245,13 @@ const PATTERNS: PatternFn[] = [
     }
     return x + n * 60;
   },
-  // 26: Block + laser combo (hard)
+  // 26: Platform + laser combo (hard)
   (obs, x, _d, rand) => {
-    const bw = 50 + rand() * 30;
-    obs.push({ x, type: 'block', width: bw, height: 40 });
-    obs.push({ x: x - 10, type: 'laser', width: bw + 20, height: 8, y: -80 });
-    obs.push({ x: x + bw + 10, type: 'spike', width: 30, height: 30 });
-    return x + bw + 40;
+    const pw = 60 + rand() * 30;
+    obs.push({ x, type: 'solid-platform', width: pw, height: 12, y: -70 });
+    obs.push({ x: x - 10, type: 'laser', width: pw + 20, height: 8, y: -120 });
+    obs.push({ x: x + pw + 10, type: 'spike', width: 30, height: 30 });
+    return x + pw + 40;
   },
   // 27: Triple gap gauntlet (very hard)
   (obs, x, diff) => {
