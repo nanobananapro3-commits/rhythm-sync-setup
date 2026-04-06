@@ -19,6 +19,7 @@ interface GameCanvasProps {
   skinInnerColor?: string;
   skinEyeColor?: string;
   skinShape?: 'square' | 'diamond' | 'circle' | 'triangle' | 'star' | 'hexagon';
+  isMobile?: boolean;
 }
 
 interface PlayerState {
