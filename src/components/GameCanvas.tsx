@@ -55,7 +55,7 @@ const BASE_DURATION = 300;
 
 const GameCanvas: React.FC<GameCanvasProps> = ({
   level, lyrics, isPlaying, musicTime, songDuration, onDeath, onComplete, onProgressChange, onRestart, onPauseMusic, onResumeMusic,
-  skinColor, skinGlowColor, skinInnerColor, skinEyeColor, skinShape = 'square',
+  skinColor, skinGlowColor, skinInnerColor, skinEyeColor, skinShape = 'square', isMobile = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const playerRef = useRef<PlayerState>({
