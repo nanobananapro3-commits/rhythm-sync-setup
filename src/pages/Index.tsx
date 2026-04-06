@@ -11,14 +11,16 @@ import { GameState, calculateStars, calculateCoinsEarned, getActiveSkin } from '
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 
-type GameScreen = 'menu' | 'levels' | 'music' | 'playing' | 'shop';
+type GameScreen = 'platform-select' | 'menu' | 'levels' | 'music' | 'playing' | 'shop';
+type PlatformMode = 'pc' | 'mobile';
 
 const MAX_CONTINUES = 3;
 
 const Index: React.FC = () => {
   const { user, signOut } = useAuth();
   const { gameState, setGameState: saveGameState, loading: profileLoading } = useProfile(user?.id);
-  const [screen, setScreen] = useState<GameScreen>('menu');
+  const [screen, setScreen] = useState<GameScreen>('platform-select');
+  const [platformMode, setPlatformMode] = useState<PlatformMode>('pc');
   const [selectedLevel, setSelectedLevel] = useState<LevelData | null>(null);
   const [lyrics, setLyrics] = useState<SyncedLyricLine[]>([]);
   const [lyricsInfo, setLyricsInfo] = useState('');
@@ -130,6 +132,27 @@ const Index: React.FC = () => {
         onStateChange={saveGameState}
         onBack={() => setScreen('menu')}
       />
+    );
+  }
+
+  if (screen === 'platform-select') {
+    return (
+      <div className="min-h-screen bg-background bg-grid flex flex-col items-center justify-center gap-8 p-4">
+        <div className="text-center">
+          <h1 className="font-display text-5xl sm:text-7xl font-black text-primary text-glow-primary tracking-wider">GEOMETRY</h1>
+          <h1 className="font-display text-5xl sm:text-7xl font-black text-accent tracking-wider -mt-2">MUSIC</h1>
+          <h1 className="font-display text-5xl sm:text-7xl font-black text-secondary text-glow-secondary tracking-wider -mt-2">DASH</h1>
+          <p className="font-body text-muted-foreground mt-6 text-lg">¿Cómo vas a jugar?</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4 w-72 sm:w-auto">
+          <Button variant="neon" size="lg" className="text-xl px-8 py-6" onClick={() => { setPlatformMode('pc'); setScreen('menu'); }}>
+            🖥️ PC
+          </Button>
+          <Button variant="neon-secondary" size="lg" className="text-xl px-8 py-6" onClick={() => { setPlatformMode('mobile'); setScreen('menu'); }}>
+            📱 Móvil
+          </Button>
+        </div>
+      </div>
     );
   }
 
@@ -259,6 +282,7 @@ const Index: React.FC = () => {
           skinInnerColor={activeSkin.innerColor}
           skinEyeColor={activeSkin.eyeColor}
           skinShape={activeSkin.shape}
+          isMobile={platformMode === 'mobile'}
         />
       )}
 

@@ -19,6 +19,7 @@ interface GameCanvasProps {
   skinInnerColor?: string;
   skinEyeColor?: string;
   skinShape?: 'square' | 'diamond' | 'circle' | 'triangle' | 'star' | 'hexagon';
+  isMobile?: boolean;
 }
 
 interface PlayerState {
@@ -54,7 +55,7 @@ const BASE_DURATION = 300;
 
 const GameCanvas: React.FC<GameCanvasProps> = ({
   level, lyrics, isPlaying, musicTime, songDuration, onDeath, onComplete, onProgressChange, onRestart, onPauseMusic, onResumeMusic,
-  skinColor, skinGlowColor, skinInnerColor, skinEyeColor, skinShape = 'square',
+  skinColor, skinGlowColor, skinInnerColor, skinEyeColor, skinShape = 'square', isMobile = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const playerRef = useRef<PlayerState>({
@@ -63,6 +64,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   });
   const cameraXRef = useRef(0);
   const jumpingRef = useRef(false);
+  const lastTouchJumpRef = useRef(0);
   const animFrameRef = useRef(0);
   const continuesUsedRef = useRef(0);
   const gameOverRef = useRef(false);
@@ -858,11 +860,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.font = '16px "Exo 2", sans-serif';
         ctx.fillStyle = 'hsl(0,0%,80%)';
         ctx.fillText(`Continúas restantes: ${MAX_CONTINUES - continuesUsedRef.current}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-        ctx.fillStyle = 'hsl(160,100%,60%)';
-        ctx.font = '14px "Exo 2", sans-serif';
-        ctx.fillText('[ESPACIO] Continuar desde aquí', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
-        ctx.fillStyle = 'hsl(0,100%,60%)';
-        ctx.fillText('[R] Reiniciar desde el principio', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 55);
+        if (!isMobile) {
+          ctx.fillStyle = 'hsl(160,100%,60%)';
+          ctx.font = '14px "Exo 2", sans-serif';
+          ctx.fillText('[ESPACIO] Continuar desde aquí', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+          ctx.fillStyle = 'hsl(0,100%,60%)';
+          ctx.fillText('[R] Reiniciar desde el principio', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 55);
+        }
       }
       if (uiState === 'gameover') {
         ctx.fillStyle = 'hsla(0,0%,0%,0.7)';
@@ -876,8 +880,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.font = '16px "Exo 2", sans-serif';
         ctx.fillStyle = 'hsl(0,0%,70%)';
         ctx.fillText('Sin continúas restantes', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
-        ctx.fillStyle = 'hsl(40,100%,60%)';
-        ctx.fillText('[ESPACIO] Reiniciar nivel', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 45);
+        if (!isMobile) {
+          ctx.fillStyle = 'hsl(40,100%,60%)';
+          ctx.fillText('[ESPACIO] Reiniciar nivel', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 45);
+        }
       }
       if (uiState === 'complete') {
         ctx.fillStyle = 'hsla(0,0%,0%,0.5)';
@@ -891,8 +897,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.font = '16px "Exo 2", sans-serif';
         ctx.fillStyle = 'hsl(0,0%,80%)';
         ctx.fillText('Siguiente nivel desbloqueado 🔓', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
-        ctx.fillStyle = 'hsl(160,100%,60%)';
-        ctx.fillText('[ESPACIO] Continuar', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+        if (!isMobile) {
+          ctx.fillStyle = 'hsl(160,100%,60%)';
+          ctx.fillText('[ESPACIO] Continuar', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+        }
       }
 
       // Progress bar
@@ -970,11 +978,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
   const handleCanvasInteraction = useCallback((down: boolean) => {
     if (!down) { jumpingRef.current = false; return; }
-    if (uiState === 'dead') { resetPlayer(false); return; }
-    if (uiState === 'gameover') { resetPlayer(true); return; }
+    if (isMobile && (uiState === 'dead' || uiState === 'gameover' || uiState === 'complete')) return;
+    if (!isMobile) {
+      if (uiState === 'dead') { resetPlayer(false); return; }
+      if (uiState === 'gameover') { resetPlayer(true); return; }
+    }
     if (uiState === 'complete') return;
+    // Mobile touch debounce to prevent rapid double jumps
+    if (isMobile) {
+      const now = Date.now();
+      if (now - lastTouchJumpRef.current < 120) return;
+      lastTouchJumpRef.current = now;
+    }
     jumpingRef.current = true;
-  }, [uiState, resetPlayer]);
+  }, [uiState, resetPlayer, isMobile]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -990,17 +1007,59 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   }, [uiState, resetPlayer]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={CANVAS_WIDTH}
-      height={CANVAS_HEIGHT}
-      className="w-full max-w-[800px] rounded-lg neon-border cursor-pointer"
-      style={{ imageRendering: 'pixelated' }}
-      onMouseDown={() => handleCanvasInteraction(true)}
-      onMouseUp={() => handleCanvasInteraction(false)}
-      onTouchStart={(e) => { e.preventDefault(); handleCanvasInteraction(true); }}
-      onTouchEnd={() => handleCanvasInteraction(false)}
-    />
+    <div className="relative w-full max-w-[800px]">
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
+        className="w-full rounded-lg neon-border cursor-pointer"
+        style={{ imageRendering: 'pixelated' }}
+        onMouseDown={() => handleCanvasInteraction(true)}
+        onMouseUp={() => handleCanvasInteraction(false)}
+        onTouchStart={(e) => { e.preventDefault(); handleCanvasInteraction(true); }}
+        onTouchEnd={() => handleCanvasInteraction(false)}
+      />
+      {isMobile && uiState === 'dead' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 gap-3 pointer-events-none">
+          <button
+            className="pointer-events-auto px-6 py-3 rounded-lg font-display text-sm bg-green-600 text-white shadow-lg active:scale-95 transition-transform"
+            onTouchStart={(e) => { e.stopPropagation(); resetPlayer(false); }}
+            onClick={() => resetPlayer(false)}
+          >
+            ▶ Continuar desde aquí
+          </button>
+          <button
+            className="pointer-events-auto px-6 py-3 rounded-lg font-display text-sm bg-red-600 text-white shadow-lg active:scale-95 transition-transform"
+            onTouchStart={(e) => { e.stopPropagation(); resetPlayer(true); }}
+            onClick={() => resetPlayer(true)}
+          >
+            🔄 Reiniciar desde el principio
+          </button>
+        </div>
+      )}
+      {isMobile && uiState === 'gameover' && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <button
+            className="pointer-events-auto px-8 py-4 rounded-lg font-display text-base bg-amber-600 text-white shadow-lg active:scale-95 transition-transform"
+            onTouchStart={(e) => { e.stopPropagation(); resetPlayer(true); }}
+            onClick={() => resetPlayer(true)}
+          >
+            🔄 Reiniciar nivel
+          </button>
+        </div>
+      )}
+      {isMobile && uiState === 'complete' && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ paddingTop: '60%' }}>
+          <button
+            className="pointer-events-auto px-8 py-4 rounded-lg font-display text-base bg-green-600 text-white shadow-lg active:scale-95 transition-transform"
+            onTouchStart={(e) => { e.stopPropagation(); }}
+            onClick={() => {/* handled by parent */ }}
+          >
+            ✅ Continuar
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
 
