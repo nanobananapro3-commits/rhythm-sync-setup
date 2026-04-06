@@ -11,7 +11,8 @@ import { GameState, calculateStars, calculateCoinsEarned, getActiveSkin } from '
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 
-type GameScreen = 'menu' | 'levels' | 'music' | 'playing' | 'shop';
+type GameScreen = 'platform-select' | 'menu' | 'levels' | 'music' | 'playing' | 'shop';
+type PlatformMode = 'pc' | 'mobile';
 
 const MAX_CONTINUES = 3;
 
