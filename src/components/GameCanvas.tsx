@@ -1007,17 +1007,59 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   }, [uiState, resetPlayer]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={CANVAS_WIDTH}
-      height={CANVAS_HEIGHT}
-      className="w-full max-w-[800px] rounded-lg neon-border cursor-pointer"
-      style={{ imageRendering: 'pixelated' }}
-      onMouseDown={() => handleCanvasInteraction(true)}
-      onMouseUp={() => handleCanvasInteraction(false)}
-      onTouchStart={(e) => { e.preventDefault(); handleCanvasInteraction(true); }}
-      onTouchEnd={() => handleCanvasInteraction(false)}
-    />
+    <div className="relative w-full max-w-[800px]">
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
+        className="w-full rounded-lg neon-border cursor-pointer"
+        style={{ imageRendering: 'pixelated' }}
+        onMouseDown={() => handleCanvasInteraction(true)}
+        onMouseUp={() => handleCanvasInteraction(false)}
+        onTouchStart={(e) => { e.preventDefault(); handleCanvasInteraction(true); }}
+        onTouchEnd={() => handleCanvasInteraction(false)}
+      />
+      {isMobile && uiState === 'dead' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 gap-3 pointer-events-none">
+          <button
+            className="pointer-events-auto px-6 py-3 rounded-lg font-display text-sm bg-green-600 text-white shadow-lg active:scale-95 transition-transform"
+            onTouchStart={(e) => { e.stopPropagation(); resetPlayer(false); }}
+            onClick={() => resetPlayer(false)}
+          >
+            ▶ Continuar desde aquí
+          </button>
+          <button
+            className="pointer-events-auto px-6 py-3 rounded-lg font-display text-sm bg-red-600 text-white shadow-lg active:scale-95 transition-transform"
+            onTouchStart={(e) => { e.stopPropagation(); resetPlayer(true); }}
+            onClick={() => resetPlayer(true)}
+          >
+            🔄 Reiniciar desde el principio
+          </button>
+        </div>
+      )}
+      {isMobile && uiState === 'gameover' && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <button
+            className="pointer-events-auto px-8 py-4 rounded-lg font-display text-base bg-amber-600 text-white shadow-lg active:scale-95 transition-transform"
+            onTouchStart={(e) => { e.stopPropagation(); resetPlayer(true); }}
+            onClick={() => resetPlayer(true)}
+          >
+            🔄 Reiniciar nivel
+          </button>
+        </div>
+      )}
+      {isMobile && uiState === 'complete' && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ paddingTop: '60%' }}>
+          <button
+            className="pointer-events-auto px-8 py-4 rounded-lg font-display text-base bg-green-600 text-white shadow-lg active:scale-95 transition-transform"
+            onTouchStart={(e) => { e.stopPropagation(); }}
+            onClick={() => {/* handled by parent */ }}
+          >
+            ✅ Continuar
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
 
