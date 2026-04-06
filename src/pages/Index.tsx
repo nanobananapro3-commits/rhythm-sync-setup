@@ -282,6 +282,7 @@ const Index: React.FC = () => {
           skinInnerColor={activeSkin.innerColor}
           skinEyeColor={activeSkin.eyeColor}
           skinShape={activeSkin.shape}
+          isMobile={platformMode === 'mobile'}
         />
       )}
 
