@@ -972,11 +972,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
   const handleCanvasInteraction = useCallback((down: boolean) => {
     if (!down) { jumpingRef.current = false; return; }
-    if (uiState === 'dead') { resetPlayer(false); return; }
-    if (uiState === 'gameover') { resetPlayer(true); return; }
+    if (isMobile && (uiState === 'dead' || uiState === 'gameover' || uiState === 'complete')) return;
+    if (!isMobile) {
+      if (uiState === 'dead') { resetPlayer(false); return; }
+      if (uiState === 'gameover') { resetPlayer(true); return; }
+    }
     if (uiState === 'complete') return;
+    // Mobile touch debounce to prevent rapid double jumps
+    if (isMobile) {
+      const now = Date.now();
+      if (now - lastTouchJumpRef.current < 120) return;
+      lastTouchJumpRef.current = now;
+    }
     jumpingRef.current = true;
-  }, [uiState, resetPlayer]);
+  }, [uiState, resetPlayer, isMobile]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
