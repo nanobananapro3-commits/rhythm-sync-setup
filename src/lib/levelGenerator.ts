@@ -84,23 +84,44 @@ function addSpikeRow(obs: Obstacle[], x: number, count: number, spacing: number)
   return x + count * spacing;
 }
 
-// Staircase: platforms go up/down, each step reachable from the previous one
-// First step at y=-55 (one jump from ground), each next step +35 higher
-function addStaircase(obs: Obstacle[], x: number, steps: number, up: boolean, rand: () => number): number {
-  const baseY = -55; // reachable with one jump
-  const stepGap = 35; // each step 35px higher, reachable from previous
+// Purposeful ascending staircase: climb from ground and finish on a real upper floor.
+function addStaircase(obs: Obstacle[], x: number, steps: number, rand: () => number): number {
+  const baseY = -55;
+  const stepRise = 32;
+  let cursorX = x;
+  let firstStepWidth = 0;
+
   for (let i = 0; i < steps; i++) {
-    const si = up ? i : (steps - 1 - i);
-    const stepY = baseY - si * stepGap;
-    const w = 55 + rand() * 25;
-    obs.push({ x: x + i * 70, type: 'solid-platform', width: w, height: 12, y: stepY });
+    const width = 54 + rand() * 18;
+    if (i === 0) firstStepWidth = width;
+    obs.push({
+      x: cursorX,
+      type: 'solid-platform',
+      width,
+      height: 12,
+      y: baseY - i * stepRise,
+    });
+    cursorX += width + 22;
   }
-  // Ground spikes below the staircase (reason to climb)
-  const spikeCount = Math.max(1, steps - 1);
+
+  const upperFloorY = baseY - (steps - 1) * stepRise;
+  const upperFloorWidth = 90 + rand() * 40;
+  const upperFloorX = cursorX - 8;
+  obs.push({ x: upperFloorX, type: 'solid-platform', width: upperFloorWidth, height: 12, y: upperFloorY });
+
+  const spikeStart = x + firstStepWidth + 24;
+  const spikeCount = Math.max(2, steps + 1);
   for (let i = 0; i < spikeCount; i++) {
-    obs.push({ x: x + 20 + i * 70, type: 'spike', width: 30, height: 30 });
+    const isTallExit = i === spikeCount - 1 && steps > 3;
+    obs.push({
+      x: spikeStart + i * 38,
+      type: isTallExit ? 'tall-spike' : 'spike',
+      width: 30,
+      height: isTallExit ? 55 : 30,
+    });
   }
-  return x + steps * 70;
+
+  return upperFloorX + upperFloorWidth + 24;
 }
 
 type PatternFn = (obs: Obstacle[], x: number, diff: number, rand: () => number) => number;
@@ -114,16 +135,15 @@ const PATTERNS: PatternFn[] = [
   (obs, x) => { obs.push({ x, type: 'triple-spike', width: 90, height: 30 }); return x + 90; },
   // 3: Tall spike
   (obs, x) => { obs.push({ x, type: 'tall-spike', width: 30, height: 60 }); return x + 30; },
-  // 4: Platform over spikes (escape route up)
+  // 4: Launch platform into spike clear
   (obs, x, _d, rand) => {
-    const w = 60 + rand() * 50;
-    // Ground spikes that you avoid by jumping onto the platform
-    obs.push({ x: x + 5, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + 40, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + 75, type: 'spike', width: 30, height: 30 });
-    // Platform reachable with one jump (y=-55)
-    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -55 });
-    return x + w + 20;
+    const entryW = 62 + rand() * 24;
+    const spikeStart = x + entryW + 24;
+    obs.push({ x, type: 'solid-platform', width: entryW, height: 12, y: -55 });
+    obs.push({ x: spikeStart, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: spikeStart + 35, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: spikeStart + 70, type: 'spike', width: 30, height: 30 });
+    return spikeStart + 110;
   },
   // 5: Gap
   (obs, x, diff) => {
@@ -135,30 +155,51 @@ const PATTERNS: PatternFn[] = [
     const count = 3 + Math.floor(rand() * (1 + diff * 3));
     return addSpikeRow(obs, x, count, 32);
   },
-  // 7: Staircase up
-  (obs, x, diff, rand) => addStaircase(obs, x, 2 + Math.floor(rand() * (2 + diff * 3)), true, rand),
-  // 8: Staircase down
-  (obs, x, diff, rand) => addStaircase(obs, x, 2 + Math.floor(rand() * (2 + diff * 3)), false, rand),
-  // 9: Platform bridge over spike pit
+  // 7: Staircase up to a real upper floor
+  (obs, x, diff, rand) => addStaircase(obs, x, 2 + Math.floor(rand() * (2 + diff * 2)), rand),
+  // 8: Stair bridge over a spike lane
   (obs, x, _d, rand) => {
-    const pw = 70 + rand() * 40;
-    // Spike row on ground
-    for (let i = 0; i < 3; i++) {
-      obs.push({ x: x + 10 + i * 32, type: 'spike', width: 30, height: 30 });
+    const entryW = 58 + rand() * 18;
+    const midW = 52 + rand() * 18;
+    const crestW = 68 + rand() * 20;
+    const exitW = 64 + rand() * 18;
+    obs.push({ x, type: 'solid-platform', width: entryW, height: 12, y: -55 });
+    obs.push({ x: x + 82, type: 'solid-platform', width: midW, height: 12, y: -88 });
+    obs.push({ x: x + 160, type: 'solid-platform', width: crestW, height: 12, y: -88 });
+    obs.push({ x: x + 252, type: 'solid-platform', width: exitW, height: 12, y: -55 });
+    for (let i = 0; i < 4; i++) {
+      obs.push({ x: x + entryW + 28 + i * 38, type: 'spike', width: 30, height: 30 });
     }
-    // Platform above to jump onto and cross safely
-    obs.push({ x, type: 'solid-platform', width: pw, height: 12, y: -55 });
-    return x + pw + 15;
+    if (rand() > 0.45) {
+      obs.push({ x: x + 184, type: 'ceiling-spike', width: 25, height: 25, y: -148 });
+    }
+    return x + 252 + exitW + 18;
   },
-  // 10: Two-step platform (ground spike → step 1 → step 2)
+  // 9: Twin platforms over a spike lane
   (obs, x, _d, rand) => {
-    const w1 = 50 + rand() * 20;
-    const w2 = 45 + rand() * 20;
-    obs.push({ x: x + 10, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + 45, type: 'spike', width: 30, height: 30 });
-    obs.push({ x, type: 'solid-platform', width: w1, height: 12, y: -55 });
-    obs.push({ x: x + w1 + 15, type: 'solid-platform', width: w2, height: 12, y: -90 });
-    return x + w1 + w2 + 35;
+    const entryW = 58 + rand() * 18;
+    const exitW = 56 + rand() * 18;
+    const spikeStart = x + entryW + 22;
+    const exitX = spikeStart + 108;
+    obs.push({ x, type: 'solid-platform', width: entryW, height: 12, y: -55 });
+    for (let i = 0; i < 3; i++) {
+      obs.push({ x: spikeStart + i * 35, type: 'spike', width: 30, height: 30 });
+    }
+    obs.push({ x: exitX, type: 'solid-platform', width: exitW, height: 12, y: -55 });
+    return exitX + exitW + 18;
+  },
+  // 10: Stair start into an upper floor
+  (obs, x, _d, rand) => {
+    const entryW = 58 + rand() * 16;
+    const stepW = 54 + rand() * 18;
+    const upperFloorW = 82 + rand() * 30;
+    obs.push({ x, type: 'solid-platform', width: entryW, height: 12, y: -55 });
+    obs.push({ x: x + 82, type: 'solid-platform', width: stepW, height: 12, y: -88 });
+    obs.push({ x: x + 160, type: 'solid-platform', width: upperFloorW, height: 12, y: -88 });
+    for (let i = 0; i < 4; i++) {
+      obs.push({ x: x + entryW + 24 + i * 38, type: 'spike', width: 30, height: 30 });
+    }
+    return x + 160 + upperFloorW + 20;
   },
   // 11: Saw blade
   (obs, x) => { obs.push({ x, type: 'saw', width: 35, height: 35 }); return x + 35; },
@@ -166,7 +207,7 @@ const PATTERNS: PatternFn[] = [
   (obs, x, _d, rand) => {
     const w = 60 + rand() * 40;
     obs.push({ x, type: 'platform', width: w, height: 15, y: -80 });
-    obs.push({ x: x + w / 2 - 15, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + w / 2 - 15, type: 'spike', width: 30, height: 30, y: -110 });
     return x + w;
   },
   // 13: Moving block
@@ -179,17 +220,19 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x: x + 5, type: 'solid-platform', width: gw - 10, height: 12, y: -55 });
     return x + gw + 10;
   },
-  // 15: Spike field with overhead escape platform
+  // 15: Staircase to an upper route over a spike field
   (obs, x, _d, rand) => {
-    const len = 120 + rand() * 60;
-    // Many spikes on ground
-    const count = Math.floor(len / 35);
-    for (let i = 0; i < count; i++) {
-      obs.push({ x: x + i * 35, type: 'spike', width: 30, height: 30 });
+    const entryW = 60 + rand() * 20;
+    const stepW = 54 + rand() * 18;
+    const upperFloorW = 110 + rand() * 50;
+    obs.push({ x, type: 'solid-platform', width: entryW, height: 12, y: -55 });
+    obs.push({ x: x + 82, type: 'solid-platform', width: stepW, height: 12, y: -88 });
+    obs.push({ x: x + 160, type: 'solid-platform', width: upperFloorW, height: 12, y: -88 });
+    const spikeCount = Math.max(4, Math.floor((upperFloorW + 30) / 38));
+    for (let i = 0; i < spikeCount; i++) {
+      obs.push({ x: x + entryW + 28 + i * 38, type: 'spike', width: 30, height: 30 });
     }
-    // Long platform above to cross safely
-    obs.push({ x: x - 10, type: 'solid-platform', width: len + 20, height: 12, y: -55 });
-    return x + len + 15;
+    return x + 160 + upperFloorW + 22;
   },
   // 16: Spike wall
   (obs, x) => {
@@ -197,17 +240,24 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x: x + 35, type: 'spike', width: 30, height: 30 });
     return x + 65;
   },
-  // 17: Platform hop (each platform has spikes below, must jump between them)
+  // 17: Platform hop between spike clusters
   (obs, x, _d, rand) => {
     const n = 2 + Math.floor(rand() * 2);
     let cx = x;
     for (let i = 0; i < n; i++) {
       const w = 50 + rand() * 30;
-      obs.push({ x: cx, type: 'solid-platform', width: w, height: 12, y: -55 });
-      // Spikes below each platform
-      obs.push({ x: cx + 10, type: 'spike', width: 30, height: 30 });
-      if (w > 60) obs.push({ x: cx + 45, type: 'spike', width: 30, height: 30 });
-      cx += w + 40;
+      const platformY = i % 2 === 0 ? -55 : -88;
+      const tallTrap = rand() > 0.65;
+      obs.push({ x: cx, type: 'solid-platform', width: w, height: 12, y: platformY });
+      const spikeStart = cx + w + 18;
+      obs.push({ x: spikeStart, type: 'spike', width: 30, height: 30 });
+      obs.push({
+        x: spikeStart + 36,
+        type: tallTrap ? 'tall-spike' : 'spike',
+        width: 30,
+        height: tallTrap ? 55 : 30,
+      });
+      cx = spikeStart + 84;
     }
     return cx;
   },
@@ -327,23 +377,31 @@ const PATTERNS: PatternFn[] = [
     if (rand() > 0.3) obs.push({ x: x + 170, type: 'solid-platform', width: 90, height: 12, y: -55 });
     return x + 260;
   },
-  // 30: Platform over double spike (simple escape)
+  // 30: Launch platform into double spike
   (obs, x, _d, rand) => {
-    const w = 60 + rand() * 40;
-    obs.push({ x: x + 5, type: 'double-spike', width: 60, height: 30 });
-    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -55 });
-    return x + w + 15;
+    const entryW = 64 + rand() * 20;
+    const spikeX = x + entryW + 26;
+    obs.push({ x, type: 'solid-platform', width: entryW, height: 12, y: -55 });
+    obs.push({ x: spikeX, type: 'double-spike', width: 60, height: 30 });
+    return spikeX + 74;
   },
-  // 31: Floating platform staircase (ascending)
+  // 31: Floating staircase to a second floor
   (obs, x, _d, rand) => {
-    const steps = 2 + Math.floor(rand() * 3);
-    let cx = x;
-    for (let i = 0; i < steps; i++) {
-      const w = 45 + rand() * 35;
-      obs.push({ x: cx, type: 'solid-platform', width: w, height: 12, y: -60 - i * 45 });
-      cx += w + 25 + rand() * 20;
+    const firstW = 56 + rand() * 16;
+    const secondW = 54 + rand() * 18;
+    const thirdW = 60 + rand() * 20;
+    const topFloorW = 90 + rand() * 35;
+    obs.push({ x, type: 'solid-platform', width: firstW, height: 12, y: -55 });
+    obs.push({ x: x + 82, type: 'solid-platform', width: secondW, height: 12, y: -88 });
+    obs.push({ x: x + 160, type: 'solid-platform', width: thirdW, height: 12, y: -121 });
+    obs.push({ x: x + 244, type: 'solid-platform', width: topFloorW, height: 12, y: -121 });
+    for (let i = 0; i < 5; i++) {
+      obs.push({ x: x + firstW + 26 + i * 38, type: 'spike', width: 30, height: 30 });
     }
-    return cx;
+    if (rand() > 0.4) {
+      obs.push({ x: x + 274, type: 'ceiling-spike', width: 25, height: 25, y: -182 });
+    }
+    return x + 244 + topFloorW + 24;
   },
   // 32: Vertical saw (lvl 10+)
   (obs, x) => {
@@ -400,52 +458,49 @@ const PATTERNS: PatternFn[] = [
     obs.push({ x, type: 'mushroom', width: 24, height: 24, y: -40 });
     return x + 30;
   },
-  // 39: Long platform bridge over spike field
+  // 39: Long upper route over a spike field
   (obs, x, _d, rand) => {
-    const w = 110 + rand() * 70;
-    obs.push({ x, type: 'solid-platform', width: w, height: 12, y: -55 });
-    // Many ground spikes below (reason to be on the platform)
-    const spikeCount = Math.floor(w / 35);
+    const entryW = 58 + rand() * 18;
+    const upperFloorW = 120 + rand() * 60;
+    obs.push({ x, type: 'solid-platform', width: entryW, height: 12, y: -55 });
+    obs.push({ x: x + 84, type: 'solid-platform', width: upperFloorW, height: 12, y: -88 });
+    const spikeCount = Math.max(4, Math.floor((upperFloorW + 20) / 38));
     for (let i = 0; i < spikeCount; i++) {
-      obs.push({ x: x + 10 + i * 35, type: 'spike', width: 30, height: 30 });
+      obs.push({ x: x + entryW + 28 + i * 38, type: 'spike', width: 30, height: 30 });
     }
-    return x + w + 15;
+    return x + 84 + upperFloorW + 20;
   },
-  // 40: Branching path — easy top / hard bottom
+  // 40: Branching path — safer top floor / harsher bottom
   (obs, x, _d, rand) => {
-    const len = 250 + rand() * 80;
-    // Entry step platform (reachable with one jump)
-    obs.push({ x, type: 'solid-platform', width: 55, height: 12, y: -55 });
-    // Top path: connected platforms (safer, fewer spikes)
-    obs.push({ x: x + 60, type: 'solid-platform', width: 80, height: 12, y: -55 });
-    obs.push({ x: x + 150, type: 'solid-platform', width: 70, height: 12, y: -55 });
-    // One spike on top path (small risk)
-    obs.push({ x: x + 100, type: 'spike', width: 25, height: 25, y: -55 - 25 });
-    // Bottom path: ground with lots of spikes (harder)
-    obs.push({ x: x + 30, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + 70, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + 110, type: 'tall-spike', width: 30, height: 55 });
-    obs.push({ x: x + 155, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + 195, type: 'spike', width: 30, height: 30 });
-    return x + len;
-  },
-  // 41: Descending staircase with spikes on each step
-  (obs, x, _d, rand) => {
-    const steps = 3 + Math.floor(rand() * 2);
-    let cx = x;
-    for (let i = 0; i < steps; i++) {
-      const w = 50 + rand() * 25;
-      const stepY = -90 + i * 30; // descending
-      obs.push({ x: cx, type: 'solid-platform', width: w, height: 12, y: stepY });
-      // Spike on alternating steps (risk of landing)
-      if (i % 2 === 1) {
-        obs.push({ x: cx + w / 2 - 12, type: 'spike', width: 25, height: 25 });
-      }
-      cx += w + 25;
+    const topExitW = 78 + rand() * 24;
+    obs.push({ x, type: 'solid-platform', width: 56, height: 12, y: -55 });
+    obs.push({ x: x + 78, type: 'solid-platform', width: 72, height: 12, y: -88 });
+    obs.push({ x: x + 166, type: 'solid-platform', width: topExitW, height: 12, y: -88 });
+    if (rand() > 0.35) {
+      obs.push({ x: x + 194, type: 'ceiling-spike', width: 25, height: 25, y: -148 });
     }
-    // Ground spikes at the end
-    obs.push({ x: cx - 20, type: 'spike', width: 30, height: 30 });
-    return cx + 15;
+    obs.push({ x: x + 60, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 100, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 140, type: 'tall-spike', width: 30, height: 55 });
+    obs.push({ x: x + 186, type: 'spike', width: 30, height: 30 });
+    obs.push({ x: x + 224, type: 'spike', width: 30, height: 30 });
+    return x + 166 + topExitW + 20;
+  },
+  // 41: Stair trap — useful to cross, risky to over-jump
+  (obs, x, _d, rand) => {
+    const entryW = 58 + rand() * 16;
+    const midW = 54 + rand() * 16;
+    const highW = 70 + rand() * 18;
+    const exitW = 62 + rand() * 18;
+    obs.push({ x, type: 'solid-platform', width: entryW, height: 12, y: -55 });
+    obs.push({ x: x + 82, type: 'solid-platform', width: midW, height: 12, y: -88 });
+    obs.push({ x: x + 160, type: 'solid-platform', width: highW, height: 12, y: -88 });
+    obs.push({ x: x + 250, type: 'solid-platform', width: exitW, height: 12, y: -55 });
+    for (let i = 0; i < 4; i++) {
+      obs.push({ x: x + entryW + 26 + i * 38, type: 'spike', width: 30, height: 30 });
+    }
+    obs.push({ x: x + 192, type: 'ceiling-spike', width: 25, height: 25, y: -148 });
+    return x + 250 + exitW + 18;
   },
   // 42: Platform with spike trap (safe below, dangerous above)
   (obs, x, _d, rand) => {
@@ -459,18 +514,22 @@ const PATTERNS: PatternFn[] = [
   },
   // 43: Branching path v2 — hard top (more reward) / easy bottom
   (obs, x, _d, rand) => {
-    const len = 260 + rand() * 60;
-    // Step up to reach upper floor
-    obs.push({ x, type: 'solid-platform', width: 50, height: 12, y: -55 });
-    // Upper path: platforms with ceiling spikes (harder but skip ground danger)
-    obs.push({ x: x + 55, type: 'solid-platform', width: 80, height: 12, y: -90 });
-    obs.push({ x: x + 75, type: 'ceiling-spike', width: 25, height: 25, y: -155 });
-    obs.push({ x: x + 145, type: 'solid-platform', width: 70, height: 12, y: -85 });
-    obs.push({ x: x + 160, type: 'ceiling-spike', width: 25, height: 25, y: -150 });
-    // Lower path: just a couple spikes (easier)
-    obs.push({ x: x + 80, type: 'spike', width: 30, height: 30 });
-    obs.push({ x: x + 160, type: 'spike', width: 30, height: 30 });
-    return x + len;
+    const topW1 = 76 + rand() * 20;
+    const topW2 = 72 + rand() * 18;
+    const bottomTall = rand() > 0.5;
+    obs.push({ x, type: 'solid-platform', width: 54, height: 12, y: -55 });
+    obs.push({ x: x + 76, type: 'solid-platform', width: topW1, height: 12, y: -88 });
+    obs.push({ x: x + 166, type: 'solid-platform', width: topW2, height: 12, y: -88 });
+    obs.push({ x: x + 108, type: 'ceiling-spike', width: 25, height: 25, y: -148 });
+    obs.push({ x: x + 194, type: 'ceiling-spike', width: 25, height: 25, y: -148 });
+    obs.push({ x: x + 92, type: 'spike', width: 30, height: 30 });
+    obs.push({
+      x: x + 170,
+      type: bottomTall ? 'tall-spike' : 'spike',
+      width: 30,
+      height: bottomTall ? 55 : 30,
+    });
+    return x + 166 + topW2 + 24;
   },
 ];
 

@@ -13,7 +13,7 @@ interface GameCanvasProps {
   onProgressChange: (progress: number) => void;
   onRestart?: () => void;
   onPauseMusic?: () => void;
-  onResumeMusic?: () => void;
+  onResumeMusic?: (time?: number) => void;
   skinColor?: string;
   skinGlowColor?: string;
   skinInnerColor?: string;
@@ -267,7 +267,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       } else if (obs.type === 'hammer') {
         obsY = level.groundY - obs.height;
       } else {
-        obsY = level.groundY - obs.height;
+        obsY = obs.y !== undefined ? level.groundY + obs.y : level.groundY - obs.height;
       }
 
       if (obs.type === 'spike' || obs.type === 'tall-spike' || obs.type === 'double-spike' ||
@@ -551,21 +551,30 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.shadowColor = obsColor; ctx.shadowBlur = 8;
 
         switch (obs.type) {
-          case 'spike': case 'tall-spike':
-            drawSpike(sx, level.groundY - obs.height, obs.width, obs.height);
+          case 'spike':
+          case 'tall-spike': {
+            const spikeY = obs.y !== undefined ? level.groundY + obs.y : level.groundY - obs.height;
+            drawSpike(sx, spikeY, obs.width, obs.height);
             break;
-          case 'wave-spike':
+          }
+          case 'wave-spike': {
+            const waveY = obs.y !== undefined ? level.groundY + obs.y : level.groundY - obs.height;
             ctx.fillStyle = accentCol.replace(')', ', 0.9)').replace('hsl(', 'hsla(');
             ctx.strokeStyle = accentCol;
-            drawSpike(sx, level.groundY - obs.height, obs.width, obs.height, accentCol.replace(')', ', 0.9)').replace('hsl(', 'hsla('));
+            drawSpike(sx, waveY, obs.width, obs.height, accentCol.replace(')', ', 0.9)').replace('hsl(', 'hsla('));
             break;
-          case 'double-spike':
-            drawSpike(sx, level.groundY - obs.height, 30, obs.height);
-            drawSpike(sx + 30, level.groundY - obs.height, 30, obs.height);
+          }
+          case 'double-spike': {
+            const spikeY = obs.y !== undefined ? level.groundY + obs.y : level.groundY - obs.height;
+            drawSpike(sx, spikeY, 30, obs.height);
+            drawSpike(sx + 30, spikeY, 30, obs.height);
             break;
-          case 'triple-spike':
-            for (let i = 0; i < 3; i++) drawSpike(sx + i * 30, level.groundY - obs.height, 30, obs.height);
+          }
+          case 'triple-spike': {
+            const spikeY = obs.y !== undefined ? level.groundY + obs.y : level.groundY - obs.height;
+            for (let i = 0; i < 3; i++) drawSpike(sx + i * 30, spikeY, 30, obs.height);
             break;
+          }
           case 'block': case 'moving-block': {
             const by = level.groundY - obs.height;
             const bGrad = ctx.createLinearGradient(sx, by, sx, by + obs.height);
@@ -910,6 +919,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
   const findSafeRespawnCamera = useCallback((cam: number) => {
     const obstacles = scaledObstacles.current;
+    const nonFatalTypes = new Set<Obstacle['type']>([
+      'platform',
+      'solid-platform',
+      'orb',
+      'mushroom',
+      'mode-ball',
+      'mode-airplane',
+      'mode-normal',
+      'vanishing-block',
+    ]);
     const SAFE_MARGIN = 350;
     const RETREAT_STEP = 100;
     const MAX_RETREATS = 12;
@@ -917,7 +936,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     for (let attempt = 0; attempt < MAX_RETREATS; attempt++) {
       const playerX = testCam + 100;
       const hasDanger = obstacles.some(obs => {
-        if (obs.type === 'platform' || obs.type === 'orb') return false;
+        if (nonFatalTypes.has(obs.type)) return false;
         const obsEnd = obs.x + obs.width;
         return obsEnd >= playerX && obs.x <= playerX + SAFE_MARGIN;
       });
@@ -934,8 +953,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       onRestart?.();
     } else {
       continuesUsedRef.current++;
-      cameraXRef.current = findSafeRespawnCamera(cameraXRef.current);
-      onResumeMusic?.();
+      const respawnCamera = findSafeRespawnCamera(cameraXRef.current);
+      cameraXRef.current = respawnCamera;
+      const respawnTime = scaledLength.current > 0
+        ? Math.min((respawnCamera / scaledLength.current) * effectiveDuration, Math.max(effectiveDuration - 0.05, 0))
+        : 0;
+      onResumeMusic?.(respawnTime);
     }
     player.x = cameraXRef.current + 100;
     player.y = level.groundY - PLAYER_SIZE;
@@ -943,7 +966,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     player.mode = 'normal'; player.isImmortal = false; player.immortalTimer = 0;
     particlesRef.current = [];
     setUiState('playing');
-  }, [level, onRestart, findSafeRespawnCamera, onResumeMusic]);
+  }, [level, onRestart, findSafeRespawnCamera, onResumeMusic, effectiveDuration]);
 
   const handleCanvasInteraction = useCallback((down: boolean) => {
     if (!down) { jumpingRef.current = false; return; }

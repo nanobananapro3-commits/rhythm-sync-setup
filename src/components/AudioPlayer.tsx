@@ -13,6 +13,7 @@ export interface AudioPlayerHandle {
   restart: () => void;
   pause: () => void;
   resume: () => void;
+  seekTo: (time: number) => void;
 }
 
 const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(({
@@ -25,6 +26,7 @@ const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(({
     restart: () => {
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
+        onTimeUpdate(0);
         audioRef.current.play().catch(() => {});
       }
     },
@@ -33,6 +35,13 @@ const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(({
     },
     resume: () => {
       if (audioRef.current) audioRef.current.play().catch(() => {});
+    },
+    seekTo: (time: number) => {
+      if (!audioRef.current) return;
+      const duration = Number.isFinite(audioRef.current.duration) ? audioRef.current.duration : time;
+      const nextTime = Math.max(0, Math.min(time, duration));
+      audioRef.current.currentTime = nextTime;
+      onTimeUpdate(nextTime);
     },
   }));
 
