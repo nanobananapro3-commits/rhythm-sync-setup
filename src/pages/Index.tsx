@@ -157,6 +157,7 @@ const Index: React.FC = () => {
   }
 
   if (screen === 'menu') {
+    return (
       <div className="min-h-screen bg-background bg-grid flex flex-col items-center justify-center gap-8 p-4">
         <div className="text-center">
           <h1 className="font-display text-5xl sm:text-7xl font-black text-primary text-glow-primary tracking-wider">GEOMETRY</h1>
