@@ -65,6 +65,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const cameraXRef = useRef(0);
   const jumpingRef = useRef(false);
   const lastTouchJumpRef = useRef(0);
+  const animFrameRef = useRef(0);
   const continuesUsedRef = useRef(0);
   const gameOverRef = useRef(false);
   const completedRef = useRef(false);
