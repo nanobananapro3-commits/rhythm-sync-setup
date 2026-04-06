@@ -99,6 +99,7 @@ const Index: React.FC = () => {
   const handleRestart = useCallback(() => {
     audioPlayerRef.current?.restart();
     livesRemainingRef.current = MAX_CONTINUES;
+    setMusicTime(0);
     setCompletionInfo(null);
   }, []);
 
@@ -111,7 +112,11 @@ const Index: React.FC = () => {
     audioPlayerRef.current?.pause();
     setIsPlaying(false);
   }, []);
-  const handleResumeMusic = useCallback(() => {
+  const handleResumeMusic = useCallback((time?: number) => {
+    if (typeof time === 'number') {
+      audioPlayerRef.current?.seekTo(time);
+      setMusicTime(time);
+    }
     audioPlayerRef.current?.resume();
     setIsPlaying(true);
   }, []);
