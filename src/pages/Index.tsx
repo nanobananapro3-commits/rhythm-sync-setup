@@ -19,7 +19,8 @@ const MAX_CONTINUES = 3;
 const Index: React.FC = () => {
   const { user, signOut } = useAuth();
   const { gameState, setGameState: saveGameState, loading: profileLoading } = useProfile(user?.id);
-  const [screen, setScreen] = useState<GameScreen>('menu');
+  const [screen, setScreen] = useState<GameScreen>('platform-select');
+  const [platformMode, setPlatformMode] = useState<PlatformMode>('pc');
   const [selectedLevel, setSelectedLevel] = useState<LevelData | null>(null);
   const [lyrics, setLyrics] = useState<SyncedLyricLine[]>([]);
   const [lyricsInfo, setLyricsInfo] = useState('');
