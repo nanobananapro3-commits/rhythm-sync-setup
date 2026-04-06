@@ -860,11 +860,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.font = '16px "Exo 2", sans-serif';
         ctx.fillStyle = 'hsl(0,0%,80%)';
         ctx.fillText(`Continúas restantes: ${MAX_CONTINUES - continuesUsedRef.current}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-        ctx.fillStyle = 'hsl(160,100%,60%)';
-        ctx.font = '14px "Exo 2", sans-serif';
-        ctx.fillText('[ESPACIO] Continuar desde aquí', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
-        ctx.fillStyle = 'hsl(0,100%,60%)';
-        ctx.fillText('[R] Reiniciar desde el principio', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 55);
+        if (!isMobile) {
+          ctx.fillStyle = 'hsl(160,100%,60%)';
+          ctx.font = '14px "Exo 2", sans-serif';
+          ctx.fillText('[ESPACIO] Continuar desde aquí', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+          ctx.fillStyle = 'hsl(0,100%,60%)';
+          ctx.fillText('[R] Reiniciar desde el principio', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 55);
+        }
       }
       if (uiState === 'gameover') {
         ctx.fillStyle = 'hsla(0,0%,0%,0.7)';
@@ -878,8 +880,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.font = '16px "Exo 2", sans-serif';
         ctx.fillStyle = 'hsl(0,0%,70%)';
         ctx.fillText('Sin continúas restantes', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
-        ctx.fillStyle = 'hsl(40,100%,60%)';
-        ctx.fillText('[ESPACIO] Reiniciar nivel', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 45);
+        if (!isMobile) {
+          ctx.fillStyle = 'hsl(40,100%,60%)';
+          ctx.fillText('[ESPACIO] Reiniciar nivel', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 45);
+        }
       }
       if (uiState === 'complete') {
         ctx.fillStyle = 'hsla(0,0%,0%,0.5)';
@@ -893,8 +897,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.font = '16px "Exo 2", sans-serif';
         ctx.fillStyle = 'hsl(0,0%,80%)';
         ctx.fillText('Siguiente nivel desbloqueado 🔓', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
-        ctx.fillStyle = 'hsl(160,100%,60%)';
-        ctx.fillText('[ESPACIO] Continuar', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+        if (!isMobile) {
+          ctx.fillStyle = 'hsl(160,100%,60%)';
+          ctx.fillText('[ESPACIO] Continuar', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+        }
       }
 
       // Progress bar
