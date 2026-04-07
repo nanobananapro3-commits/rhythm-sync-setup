@@ -65,6 +65,7 @@ const Index: React.FC = () => {
         : '❌ No se encontraron letras'
     );
     setScreen('playing');
+    enterFullscreen();
   };
 
   const handleDeath = useCallback(() => {
