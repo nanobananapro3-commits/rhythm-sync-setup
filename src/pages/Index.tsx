@@ -244,10 +244,16 @@ const Index: React.FC = () => {
     );
   }
 
+  const exitFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center gap-4 p-4">
+    <div ref={gameContainerRef} className="min-h-screen bg-background flex flex-col items-center gap-4 p-4">
       <div className="w-full max-w-[800px] flex items-center justify-between">
-        <Button variant="neon-outline" size="sm" onClick={() => { setScreen('music'); setIsPlaying(false); setCompletionInfo(null); }}>
+        <Button variant="neon-outline" size="sm" onClick={() => { exitFullscreen(); setScreen('music'); setIsPlaying(false); setCompletionInfo(null); }}>
           ← Cambiar canción
         </Button>
         <div className="text-right flex items-center gap-3">
