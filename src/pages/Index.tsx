@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import GameCanvas from '@/components/GameCanvas';
 import MusicSearch from '@/components/MusicSearch';
@@ -33,6 +33,16 @@ const Index: React.FC = () => {
   const [completionInfo, setCompletionInfo] = useState<{ stars: number; coins: number } | null>(null);
   const audioPlayerRef = useRef<AudioPlayerHandle>(null);
   const livesRemainingRef = useRef(MAX_CONTINUES);
+  const gameContainerRef = useRef<HTMLDivElement>(null);
+
+  const enterFullscreen = useCallback(() => {
+    const el = gameContainerRef.current || document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    } else if ((el as any).webkitRequestFullscreen) {
+      (el as any).webkitRequestFullscreen();
+    }
+  }, []);
 
   const handleSelectLevel = (levelNum: number) => {
     const level = generateLevel(levelNum);
@@ -55,6 +65,7 @@ const Index: React.FC = () => {
         : '❌ No se encontraron letras'
     );
     setScreen('playing');
+    enterFullscreen();
   };
 
   const handleDeath = useCallback(() => {
@@ -224,6 +235,7 @@ const Index: React.FC = () => {
             setSongDuration(300);
             setLyricsInfo('');
             setScreen('playing');
+            enterFullscreen();
           }}
         >
           Jugar sin música
@@ -232,10 +244,16 @@ const Index: React.FC = () => {
     );
   }
 
+  const exitFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center gap-4 p-4">
+    <div ref={gameContainerRef} className="min-h-screen bg-background flex flex-col items-center gap-4 p-4">
       <div className="w-full max-w-[800px] flex items-center justify-between">
-        <Button variant="neon-outline" size="sm" onClick={() => { setScreen('music'); setIsPlaying(false); setCompletionInfo(null); }}>
+        <Button variant="neon-outline" size="sm" onClick={() => { exitFullscreen(); setScreen('music'); setIsPlaying(false); setCompletionInfo(null); }}>
           ← Cambiar canción
         </Button>
         <div className="text-right flex items-center gap-3">
