@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import GameCanvas from '@/components/GameCanvas';
 import MusicSearch from '@/components/MusicSearch';
