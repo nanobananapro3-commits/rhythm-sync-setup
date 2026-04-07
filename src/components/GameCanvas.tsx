@@ -58,6 +58,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   skinColor, skinGlowColor, skinInnerColor, skinEyeColor, skinShape = 'square', isMobile = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<PlayerState>({
     x: 100, y: level.groundY - PLAYER_SIZE, vy: 0, rotation: 0,
     isGrounded: true, isDead: false, mode: 'normal', isImmortal: false, immortalTimer: 0,
@@ -65,6 +66,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const cameraXRef = useRef(0);
   const jumpingRef = useRef(false);
   const lastTouchJumpRef = useRef(0);
+  const jumpQueuedRef = useRef(false);
   const animFrameRef = useRef(0);
   const continuesUsedRef = useRef(0);
   const gameOverRef = useRef(false);
@@ -74,6 +76,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const frameCountRef = useRef(0);
   const [currentLyric, setCurrentLyric] = useState('');
   const [uiState, setUiState] = useState<'playing' | 'dead' | 'gameover' | 'complete'>('playing');
+  const [browserFullscreen, setBrowserFullscreen] = useState(false);
+  const [fullscreenFallback, setFullscreenFallback] = useState(false);
+  const isFullscreen = browserFullscreen || fullscreenFallback;
 
   const effectiveDuration = songDuration > 0 ? songDuration : BASE_DURATION;
   const scaleFactor = effectiveDuration / BASE_DURATION;
@@ -97,6 +102,46 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     setCurrentLyric(current);
   }, [musicTime, lyrics]);
 
+  useEffect(() => {
+    const syncFullscreen = () => {
+      const active = document.fullscreenElement === wrapperRef.current;
+      setBrowserFullscreen(active);
+      if (!active) setFullscreenFallback(false);
+    };
+
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen);
+  }, []);
+
+  const openFullscreen = useCallback(async () => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    if (document.fullscreenElement === wrapper) return;
+
+    try {
+      if (wrapper.requestFullscreen) {
+        await wrapper.requestFullscreen();
+        return;
+      }
+    } catch {
+      // Fall back to immersive in-app fullscreen below.
+    }
+
+    setFullscreenFallback(true);
+  }, []);
+
+  const closeFullscreen = useCallback(async () => {
+    if (document.fullscreenElement === wrapperRef.current) {
+      try {
+        await document.exitFullscreen();
+      } catch {
+        // Ignore and fall back to local fullscreen exit.
+      }
+    }
+
+    setFullscreenFallback(false);
+  }, []);
+
   const handleInput = useCallback((pressed: boolean) => { jumpingRef.current = pressed; }, []);
 
   useEffect(() => {
@@ -117,6 +162,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     p.isGrounded = true; p.isDead = false; p.mode = 'normal'; p.isImmortal = false; p.immortalTimer = 0;
     cameraXRef.current = 0; continuesUsedRef.current = 0;
     gameOverRef.current = false; completedRef.current = false;
+    jumpingRef.current = false; jumpQueuedRef.current = false;
     particlesRef.current = [];
     setUiState('playing');
   }, [level]);
@@ -365,6 +411,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
 
       // Physics based on mode
+      const wantsJump = isMobile && player.mode !== 'airplane' ? jumpQueuedRef.current : jumpingRef.current;
       if (player.mode === 'airplane') {
         // Airplane: hold to go up, release to go down
         if (jumpingRef.current) {
@@ -382,16 +429,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         player.rotation += 2;
       } else if (player.mode === 'ball') {
         // Ball: click to flip gravity
-        if (jumpingRef.current && player.isGrounded) {
+        if (wantsJump && player.isGrounded) {
           player.vy = level.jumpForce * 0.8;
           player.isGrounded = false;
+          if (isMobile) jumpQueuedRef.current = false;
         }
         player.vy += level.gravity; player.y += player.vy;
         player.rotation += 8;
       } else {
         // Normal mode
-        if (jumpingRef.current && player.isGrounded) {
+        if (wantsJump && player.isGrounded) {
           player.vy = level.jumpForce; player.isGrounded = false;
+          if (isMobile) jumpQueuedRef.current = false;
         }
         player.vy += level.gravity; player.y += player.vy;
         if (!player.isGrounded) player.rotation += 5;
@@ -923,7 +972,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
     animFrameRef.current = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [level, isPlaying, currentLyric, uiState, onDeath, onComplete, onProgressChange, scaleFactor, effectiveDuration, skinColor, skinGlowColor, skinInnerColor, skinEyeColor, skinShape]);
+  }, [level, isPlaying, currentLyric, uiState, onDeath, onComplete, onProgressChange, scaleFactor, effectiveDuration, skinColor, skinGlowColor, skinInnerColor, skinEyeColor, skinShape, isMobile]);
 
   const findSafeRespawnCamera = useCallback((cam: number) => {
     const obstacles = scaledObstacles.current;
@@ -972,26 +1021,44 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     player.y = level.groundY - PLAYER_SIZE;
     player.vy = 0; player.rotation = 0; player.isGrounded = true; player.isDead = false;
     player.mode = 'normal'; player.isImmortal = false; player.immortalTimer = 0;
+    jumpingRef.current = false; jumpQueuedRef.current = false;
     particlesRef.current = [];
     setUiState('playing');
   }, [level, onRestart, findSafeRespawnCamera, onResumeMusic, effectiveDuration]);
 
   const handleCanvasInteraction = useCallback((down: boolean) => {
-    if (!down) { jumpingRef.current = false; return; }
+    if (!down) {
+      if (!isMobile || playerRef.current.mode === 'airplane') {
+        jumpingRef.current = false;
+      }
+      return;
+    }
+
     if (isMobile && (uiState === 'dead' || uiState === 'gameover' || uiState === 'complete')) return;
     if (!isMobile) {
       if (uiState === 'dead') { resetPlayer(false); return; }
       if (uiState === 'gameover') { resetPlayer(true); return; }
     }
     if (uiState === 'complete') return;
-    // Mobile touch debounce to prevent rapid double jumps
+
+    void openFullscreen();
+
     if (isMobile) {
-      const now = Date.now();
-      if (now - lastTouchJumpRef.current < 120) return;
+      const now = performance.now();
+      if (now - lastTouchJumpRef.current < 140) return;
       lastTouchJumpRef.current = now;
+
+      if (playerRef.current.mode === 'airplane') {
+        jumpingRef.current = true;
+      } else {
+        jumpQueuedRef.current = true;
+        jumpingRef.current = false;
+      }
+      return;
     }
+
     jumpingRef.current = true;
-  }, [uiState, resetPlayer, isMobile]);
+  }, [uiState, resetPlayer, isMobile, openFullscreen]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -1007,30 +1074,39 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   }, [uiState, resetPlayer]);
 
   return (
-    <div className="relative w-full max-w-[800px]">
+    <div
+      ref={wrapperRef}
+      className={isFullscreen ? 'fixed inset-0 z-50 flex items-center justify-center bg-background' : 'relative w-full max-w-[800px]'}
+    >
+      <button
+        type="button"
+        className="absolute right-3 top-3 z-20 rounded-md border border-border bg-background/85 px-3 py-2 font-display text-xs text-foreground shadow-lg backdrop-blur-sm transition-opacity hover:opacity-100"
+        onClick={() => { void (isFullscreen ? closeFullscreen() : openFullscreen()); }}
+      >
+        {isFullscreen ? '⤫ Salir pantalla completa' : '⛶ Pantalla completa'}
+      </button>
       <canvas
         ref={canvasRef}
         width={CANVAS_WIDTH}
         height={CANVAS_HEIGHT}
-        className="w-full rounded-lg neon-border cursor-pointer"
-        style={{ imageRendering: 'pixelated' }}
-        onMouseDown={(e) => { if (isMobile) return; handleCanvasInteraction(true); }}
-        onMouseUp={(e) => { if (isMobile) return; handleCanvasInteraction(false); }}
-        onTouchStart={(e) => { e.preventDefault(); handleCanvasInteraction(true); }}
-        onTouchEnd={(e) => { e.preventDefault(); handleCanvasInteraction(false); }}
+        className={isFullscreen ? 'h-screen w-screen cursor-pointer bg-background' : 'w-full rounded-lg neon-border cursor-pointer'}
+        style={{ imageRendering: 'pixelated', touchAction: 'none', objectFit: 'contain' }}
+        onPointerDown={(e) => { e.preventDefault(); handleCanvasInteraction(true); }}
+        onPointerUp={(e) => { e.preventDefault(); handleCanvasInteraction(false); }}
+        onPointerCancel={(e) => { e.preventDefault(); handleCanvasInteraction(false); }}
       />
       {isMobile && uiState === 'dead' && (
         <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 gap-3 pointer-events-none">
           <button
-            className="pointer-events-auto px-6 py-3 rounded-lg font-display text-sm bg-green-600 text-white shadow-lg active:scale-95 transition-transform"
-            onTouchStart={(e) => { e.stopPropagation(); resetPlayer(false); }}
+            className="pointer-events-auto rounded-lg bg-primary px-6 py-3 font-display text-sm text-primary-foreground shadow-lg transition-transform active:scale-95"
+            onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
             onClick={() => resetPlayer(false)}
           >
             ▶ Continuar desde aquí
           </button>
           <button
-            className="pointer-events-auto px-6 py-3 rounded-lg font-display text-sm bg-red-600 text-white shadow-lg active:scale-95 transition-transform"
-            onTouchStart={(e) => { e.stopPropagation(); resetPlayer(true); }}
+            className="pointer-events-auto rounded-lg bg-destructive px-6 py-3 font-display text-sm text-destructive-foreground shadow-lg transition-transform active:scale-95"
+            onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
             onClick={() => resetPlayer(true)}
           >
             🔄 Reiniciar desde el principio
@@ -1040,8 +1116,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       {isMobile && uiState === 'gameover' && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <button
-            className="pointer-events-auto px-8 py-4 rounded-lg font-display text-base bg-amber-600 text-white shadow-lg active:scale-95 transition-transform"
-            onTouchStart={(e) => { e.stopPropagation(); resetPlayer(true); }}
+            className="pointer-events-auto rounded-lg bg-secondary px-8 py-4 font-display text-base text-secondary-foreground shadow-lg transition-transform active:scale-95"
+            onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
             onClick={() => resetPlayer(true)}
           >
             🔄 Reiniciar nivel
@@ -1051,8 +1127,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       {isMobile && uiState === 'complete' && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ paddingTop: '60%' }}>
           <button
-            className="pointer-events-auto px-8 py-4 rounded-lg font-display text-base bg-green-600 text-white shadow-lg active:scale-95 transition-transform"
-            onTouchStart={(e) => { e.stopPropagation(); }}
+            className="pointer-events-auto rounded-lg bg-primary px-8 py-4 font-display text-base text-primary-foreground shadow-lg transition-transform active:scale-95"
+            onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
             onClick={() => {/* handled by parent */ }}
           >
             ✅ Continuar
