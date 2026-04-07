@@ -1014,10 +1014,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         height={CANVAS_HEIGHT}
         className="w-full rounded-lg neon-border cursor-pointer"
         style={{ imageRendering: 'pixelated' }}
-        onMouseDown={() => handleCanvasInteraction(true)}
-        onMouseUp={() => handleCanvasInteraction(false)}
+        onMouseDown={(e) => { if (isMobile) return; handleCanvasInteraction(true); }}
+        onMouseUp={(e) => { if (isMobile) return; handleCanvasInteraction(false); }}
         onTouchStart={(e) => { e.preventDefault(); handleCanvasInteraction(true); }}
-        onTouchEnd={() => handleCanvasInteraction(false)}
+        onTouchEnd={(e) => { e.preventDefault(); handleCanvasInteraction(false); }}
       />
       {isMobile && uiState === 'dead' && (
         <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 gap-3 pointer-events-none">
