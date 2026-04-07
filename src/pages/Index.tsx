@@ -235,6 +235,7 @@ const Index: React.FC = () => {
             setSongDuration(300);
             setLyricsInfo('');
             setScreen('playing');
+            enterFullscreen();
           }}
         >
           Jugar sin música
