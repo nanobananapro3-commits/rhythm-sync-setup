@@ -33,6 +33,16 @@ const Index: React.FC = () => {
   const [completionInfo, setCompletionInfo] = useState<{ stars: number; coins: number } | null>(null);
   const audioPlayerRef = useRef<AudioPlayerHandle>(null);
   const livesRemainingRef = useRef(MAX_CONTINUES);
+  const gameContainerRef = useRef<HTMLDivElement>(null);
+
+  const enterFullscreen = useCallback(() => {
+    const el = gameContainerRef.current || document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    } else if ((el as any).webkitRequestFullscreen) {
+      (el as any).webkitRequestFullscreen();
+    }
+  }, []);
 
   const handleSelectLevel = (levelNum: number) => {
     const level = generateLevel(levelNum);
