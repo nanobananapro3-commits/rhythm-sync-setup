@@ -65,8 +65,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   });
   const cameraXRef = useRef(0);
   const jumpingRef = useRef(false);
-  const lastTouchJumpRef = useRef(0);
-  const jumpQueuedRef = useRef(false);
+  const activePointerIdRef = useRef<number | null>(null);
   const animFrameRef = useRef(0);
   const continuesUsedRef = useRef(0);
   const gameOverRef = useRef(false);
@@ -162,7 +161,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     p.isGrounded = true; p.isDead = false; p.mode = 'normal'; p.isImmortal = false; p.immortalTimer = 0;
     cameraXRef.current = 0; continuesUsedRef.current = 0;
     gameOverRef.current = false; completedRef.current = false;
-    jumpingRef.current = false; jumpQueuedRef.current = false;
+    jumpingRef.current = false; activePointerIdRef.current = null;
     particlesRef.current = [];
     setUiState('playing');
   }, [level]);
@@ -411,7 +410,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
 
       // Physics based on mode
-      const wantsJump = isMobile && player.mode !== 'airplane' ? jumpQueuedRef.current : jumpingRef.current;
+      const wantsJump = jumpingRef.current;
       if (player.mode === 'airplane') {
         // Airplane: hold to go up, release to go down
         if (jumpingRef.current) {
@@ -432,7 +431,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (wantsJump && player.isGrounded) {
           player.vy = level.jumpForce * 0.8;
           player.isGrounded = false;
-          if (isMobile) jumpQueuedRef.current = false;
         }
         player.vy += level.gravity; player.y += player.vy;
         player.rotation += 8;
@@ -440,7 +438,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         // Normal mode
         if (wantsJump && player.isGrounded) {
           player.vy = level.jumpForce; player.isGrounded = false;
-          if (isMobile) jumpQueuedRef.current = false;
         }
         player.vy += level.gravity; player.y += player.vy;
         if (!player.isGrounded) player.rotation += 5;
@@ -1021,14 +1018,22 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     player.y = level.groundY - PLAYER_SIZE;
     player.vy = 0; player.rotation = 0; player.isGrounded = true; player.isDead = false;
     player.mode = 'normal'; player.isImmortal = false; player.immortalTimer = 0;
-    jumpingRef.current = false; jumpQueuedRef.current = false;
+    jumpingRef.current = false; activePointerIdRef.current = null;
     particlesRef.current = [];
     setUiState('playing');
   }, [level, onRestart, findSafeRespawnCamera, onResumeMusic, effectiveDuration]);
 
-  const handleCanvasInteraction = useCallback((down: boolean) => {
+  const handleCanvasInteraction = useCallback((down: boolean, pointerId?: number, isPrimary = true) => {
     if (!down) {
-      if (!isMobile || playerRef.current.mode === 'airplane') {
+      if (isMobile) {
+        if (activePointerIdRef.current !== null && pointerId !== undefined && activePointerIdRef.current !== pointerId) {
+          return;
+        }
+        activePointerIdRef.current = null;
+        jumpingRef.current = false;
+      } else if (playerRef.current.mode === 'airplane') {
+        jumpingRef.current = false;
+      } else {
         jumpingRef.current = false;
       }
       return;
@@ -1044,16 +1049,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     void openFullscreen();
 
     if (isMobile) {
-      const now = performance.now();
-      if (now - lastTouchJumpRef.current < 140) return;
-      lastTouchJumpRef.current = now;
-
-      if (playerRef.current.mode === 'airplane') {
-        jumpingRef.current = true;
-      } else {
-        jumpQueuedRef.current = true;
-        jumpingRef.current = false;
+      if (!isPrimary) return;
+      if (activePointerIdRef.current !== null && pointerId !== undefined && activePointerIdRef.current !== pointerId) {
+        return;
       }
+
+      activePointerIdRef.current = pointerId ?? activePointerIdRef.current;
+      jumpingRef.current = true;
       return;
     }
 
@@ -1091,9 +1093,31 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         height={CANVAS_HEIGHT}
         className={isFullscreen ? 'h-screen w-screen cursor-pointer bg-background' : 'w-full rounded-lg neon-border cursor-pointer'}
         style={{ imageRendering: 'pixelated', touchAction: 'none', objectFit: 'contain' }}
-        onPointerDown={(e) => { e.preventDefault(); handleCanvasInteraction(true); }}
-        onPointerUp={(e) => { e.preventDefault(); handleCanvasInteraction(false); }}
-        onPointerCancel={(e) => { e.preventDefault(); handleCanvasInteraction(false); }}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.currentTarget.setPointerCapture?.(e.pointerId);
+          handleCanvasInteraction(true, e.pointerId, e.isPrimary);
+        }}
+        onPointerUp={(e) => {
+          e.preventDefault();
+          if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }
+          handleCanvasInteraction(false, e.pointerId, e.isPrimary);
+        }}
+        onPointerCancel={(e) => {
+          e.preventDefault();
+          if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }
+          handleCanvasInteraction(false, e.pointerId, e.isPrimary);
+        }}
+        onLostPointerCapture={() => {
+          if (isMobile) {
+            activePointerIdRef.current = null;
+            jumpingRef.current = false;
+          }
+        }}
       />
       {isMobile && uiState === 'dead' && (
         <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 gap-3 pointer-events-none">
